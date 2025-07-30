@@ -25,7 +25,7 @@ const Voters = ({ size, firstVoteTimes }) => {
         domainPadding={{ x: 0, y: [0, 20] }}
         scale={{ x: 'time' }}>
         <VictoryArea
-          style={{ data: { fill: '#03a9f4' } }}
+          style={{ data: { fill: '#6060E9' } }}
           data={firstVoteTimes.map((d, i) => {
             return { x: new Date(d), y: i }
           })}

@@ -90,7 +90,7 @@ const ShareAndEmbed = () => {
             mt: [2]
           }}>
           This embed code can only be used to embed a single conversation.{' '}
-          <Link to="/integrate">I want to integrate pol.is on my entire site.</Link>
+          <Link to="/integrate">I want to integrate assembly.blacksky.community on my entire site.</Link>
         </Text>
         <div>{zid_metadata.zid_metadata.parent_url ? constructEmbeddedOnMarkup() : ''}</div>
       </Box>

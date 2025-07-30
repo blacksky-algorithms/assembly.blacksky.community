@@ -1,4 +1,4 @@
-# Polis Style Guide
+# Blacksky People's Assembly Style Guide
 
 ## Modular CSS
 

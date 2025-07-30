@@ -39,7 +39,7 @@ EMBED_SERVICE_HOSTNAME=localhost
 - **PORT**: Development server port (default: `3001`)
 - **CONVERSATION_ID**: Optional conversation ID to auto-navigate to
 - **GA_TRACKING_ID**: Optional Google Analytics tracking ID
-- **EMBED_SERVICE_HOSTNAME**: Hostname for embed service (default: `pol.is`)
+- **EMBED_SERVICE_HOSTNAME**: Hostname for embed service (default: `assembly.blacksky.community`)
 
 ## Features
 

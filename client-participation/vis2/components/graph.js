@@ -258,7 +258,7 @@ export default Graph;
 //     This graph shows all people and all comments.
 //   </p>
 //   <p style={globals.paragraph}>
-//     Comments, identified by their number, are positioned more closely to comments that were voted on similarly (blue, in the correlation matrix above). Comments are positioned further away from comments that tended to be voted on differently (red, in the correlation matrix above). </p>
+//     Comments, identified by their number, are positioned more closely to comments that were voted on similarly (brand, in the correlation matrix above). Comments are positioned further away from comments that tended to be voted on differently (red, in the correlation matrix above). </p>
 //   <p style={globals.paragraph}>People are positioned closer to the comments on which they agreed, and further from the comments on which they disagreed. Groups of participants that tended to vote similarly across many comments (elaborated in the previous section) are identified by their similar color.
 //   </p></span>);
 //   {this.props.renderHeading ? heading : ""}

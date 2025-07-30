@@ -1,11 +1,9 @@
 export default {
   space: [0, 4, 8, 16, 32, 64, 128, 256, 512],
   fonts: {
-    body:
-      // 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
-      "'Space Mono', monospace",
-    heading: 'inherit',
-    monospace: "'Space Mono', monospace"
+    body:  "'Rubik', sans-serif",
+    heading: "inherit",
+    monospace: "'Azeret Mono', monospace"
   },
   fontSizes: [12, 14, 16, 20, 24, 32, 48, 64, 96],
   fontWeights: {
@@ -24,13 +22,13 @@ export default {
   },
   colors: {
     // text: "#FFF",
-    text: '#60656F',
-    // background: "#03a9f4",
+    text: '#000',
+    // background: "#6060E9",
     // primary: "#FFF",
     background: '#FFF',
-    primary: '#03a9f4',
-    secondary: '#F6F7F8',
-    mediumGray: '#60656F'
+    primary: '#8686FF',
+    secondary: '#D2FC51',
+    mediumGray: '#848484'
   },
   links: {
     nav: {

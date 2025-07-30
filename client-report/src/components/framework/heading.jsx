@@ -28,7 +28,7 @@ const Content = ({conversation}) => {
           margin: 0,
         }}>
         <a
-          style={{color: "#03A9F4", fontWeight: 700, textDecoration: "none"}}
+          style={{color: "#6060E9", fontWeight: 700, textDecoration: "none"}}
           href={`${urlPrefix + conversation.conversation_id}`}>{urlPrefix + conversation.conversation_id}
         </a>
       </p>

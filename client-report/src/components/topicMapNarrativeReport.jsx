@@ -13,12 +13,12 @@ export default ({ conversation, report_id, ptptCountTotal, math, computeVoteTota
         marginTop: 40,
       }}
     >
-      
+
       <div style={{ marginBottom: 20}}>
         <div>
           <p style={globals.primaryHeading}>Overview</p>
           <p style={globals.paragraph}>
-            Pol.is is a real-time survey system that helps identify the different ways a large group
+            assembly.blacksky.community is a real-time survey system that helps identify the different ways a large group
             of people think about a divisive or complicated topic. Here's a basic breakdown of some
             terms you'll need to know in order to understand this report.
           </p>
@@ -35,10 +35,10 @@ export default ({ conversation, report_id, ptptCountTotal, math, computeVoteTota
             <strong>Opinion groups:</strong> Groups are made of participants who voted similarly to
             each other, and differently from the other groups.
           </p>
-  
+
           <p style={globals.paragraph}>
             {conversation && conversation.ownername
-              ? "This pol.is conversation was run by " + conversation.ownername + ". "
+              ? "This assembly.blacksky.community conversation was run by " + conversation.ownername + ". "
               : null}
             {conversation && conversation.topic
               ? "The topic was '" + conversation.topic + "'. "

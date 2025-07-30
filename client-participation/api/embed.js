@@ -64,7 +64,7 @@
       // These config variables will be used to init the conversation.
       // Subsequent loads will not update to these values in our DB.
       // To change the values after the conversation is created, go to the config tab of
-      // https://pol.is/m/<conversation_id>
+      // https://assembly.blacksky.community/m/<conversation_id>
       show_vis: d.getAttribute("data-show_vis"),
       show_share: d.getAttribute("data-show_share"),
       bg_white: d.getAttribute("data-bg_white"),

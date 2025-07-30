@@ -130,7 +130,7 @@ module.exports = function VisView(params) {
   };
 
   var colorPass = "#bbb"; //#BDC3C7"; // SILVER
-  var colorSelf = "rgb(0, 186, 255)"; // blue - like the 'you are here' in mapping software
+  var colorSelf = "rgb(0, 186, 255)"; // brand - like the 'you are here' in mapping software
   // var colorSelfOutline = d3_old.rgb(colorSelf).darker().toString();
   // var colorPullOutline = d3_old.rgb(colorPull).darker().toString();
   // var colorPushOutline = d3_old.rgb(colorPush).darker().toString();
@@ -859,7 +859,7 @@ module.exports = function VisView(params) {
     // Hide the circle so we can show the up/down arrows
     if (
       (commentIsSelected() &&
-        !isSelf(d) && // for now, always show circle - TODO fix up/down arrow for blue dot
+        !isSelf(d) && // for now, always show circle - TODO fix up/down arrow for brand dot
         !d.ups &&
         !d.downs) ||
       isSelf(d)

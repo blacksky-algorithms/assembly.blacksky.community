@@ -16,7 +16,7 @@ const getDownloadFilename = (file, conversation) => {
 };
 
 const RawDataExport = ({ conversation, report_id }) => {
-  const doShowDataLicenseTerms = ["pol.is", "preprod.pol.is", "localhost"].includes(
+  const doShowDataLicenseTerms = ["assembly.blacksky.community", "preprod.assembly.blacksky.community", "localhost"].includes(
     window.location.hostname
   );
 

@@ -40,7 +40,7 @@ const Label = ({ ptptCount, centroid, gid, selectedGroup, handleClick }) => {
         width={getBackgroundRectWidth(ptptCount)}
         rx="4"
         ry="4"
-        fill={selectedGroup === gid ? "#0090ff" : "rgb(248,248,248)"}
+        fill={selectedGroup === gid ? "#6060E9" : "rgb(248,248,248)"}
         x={-16}
         y={-15}
       />

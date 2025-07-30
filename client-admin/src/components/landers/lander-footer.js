@@ -11,12 +11,12 @@ class Header extends Component {
           Legal
         </Heading>
         <Box sx={{ mb: [2, null, 3], maxWidth: '30em' }}>
-          Polis is built for the public with {emoji('❤️')} in Seattle {emoji('🇺🇸')}, with
-          contributions from around the {emoji('🌍🌏🌎')}
+          Blacksky People{'\''}s Assembly – a space for public deliberation
+          and collective decision-making.
         </Box>
         <Box sx={{ mb: [2, null, 3] }}>
-          © {new Date().getFullYear()} The Authors <Link href="tos">TOS</Link>{' '}
-          <Link href="privacy">Privacy</Link>
+          © {new Date().getFullYear()} Blacksky Algorithms <Link href="https://blackskyweb.xyz/about/support/tos">TOS</Link>{' '}
+          <Link href="https://blackskyweb.xyz/about/support/privacy-policy">Privacy</Link>
         </Box>
       </Box>
     )

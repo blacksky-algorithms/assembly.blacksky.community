@@ -3,94 +3,13 @@ import _ from "lodash";
 
 const HexLogo = () => {
   return (
-    <svg style={{ userSelect: "none" }} width="60px" viewBox="0 0 264 304">
-      <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
-        <g id="logo" transform="translate(-68.000000, -48.000000)">
-          <g id="Group" transform="translate(68.000000, 48.000000)">
-            <polygon
-              id="Polygon-1"
-              fill="#0090ff"
-              points="131.734836 0 263.469671 76 263.469671 228 131.734836 304 1.13280813e-13 228 2.84217094e-14 76"
-            ></polygon>
-            <path
-              d="M37.7142857,90.446281 L47.7714286,115.570248"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <text id="p." fontFamily="Georgia" fontSize="179.950051" fontWeight="normal" fill="#FFFFFF">
-              <tspan x="77.9428571" y="180.07438">
-                p.
-              </tspan>
-            </text>
-            <path
-              d="M212.457143,162.049587 L240.114286,119.338843"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <path
-              d="M182.285714,244.958678 L208.685714,226.115702"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <path
-              d="M130.742857,268.826446 L153.371429,226.115702"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <path
-              d="M25.1428571,195.966942 L47.7714286,120.595041"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <path
-              d="M182.285714,244.958678 L208.685714,226.115702"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <ellipse fill="#FFFFFF" cx="240.114286" cy="119.338843" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="189.828571" cy="94.214876" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="36.4571429" cy="89.1900826" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="49.0285714" cy="116.826446" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="23.8857143" cy="197.22314" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="154.628571" cy="224.859504" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="149.6" cy="69.0909091" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="94.2857143" cy="71.6033058" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="104.342857" cy="54.0165289" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="129.485714" cy="43.9669421" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="129.485714" cy="270.082645" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="182.285714" cy="244.958678" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="182.285714" cy="219.834711" rx="3.77142857" ry="3.76859504"></ellipse>
-            <ellipse fill="#FFFFFF" cx="207.428571" cy="227.371901" rx="3.77142857" ry="3.76859504"></ellipse>
-            <path
-              d="M104.342857,54.0165289 L148.342857,67.8347107"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-            <path
-              d="M95.5428571,70.3471074 L103.085714,55.2727273"
-              id="Line"
-              stroke="#FFFFFF"
-              strokeWidth="0.3"
-              strokeLinecap="square"
-            ></path>
-          </g>
-        </g>
-      </g>
-    </svg>
+      <svg style={{ userSelect: "none" }} width="60px" viewBox="0 0 135 135" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="135" height="135" rx="5" fill="#8B8BFF"/>
+        <path d="M69.6357 78.0176C69.6357 81.5309 72.4837 84.3799 75.9971 84.3799H88.1396V65.875H88.1416V106.961H88.1396V88.7705H75.9971C72.4837 88.7705 69.6358 91.6185 69.6357 95.1318V106.961H65.5596V95.1318C65.5595 91.6186 62.7115 88.7706 59.1982 88.7705H47.0547V84.3799H59.1982C62.7115 84.3798 65.5596 81.5309 65.5596 78.0176V65.875H69.6357V78.0176Z" fill="black"/>
+        <path d="M76.9208 39.7337C73.4148 43.1335 73.4147 48.6457 76.9208 52.0456L84 58.9102L80.8137 62L73.7345 55.1353C70.2284 51.7355 64.5439 51.7355 61.0378 55.1353L54.1863 61.7792L51.2275 58.91L58.079 52.2661C61.585 48.8663 61.585 43.3541 58.079 39.9542L51 33.0898L54.1863 30L61.2655 36.8647C64.7716 40.2645 70.4561 40.2645 73.9622 36.8647L81.0414 30L84 32.869L76.9208 39.7337Z" fill="black"/>
+        <path d="M47.3226 53.5452C46.0666 58.2418 48.8483 63.0695 53.5357 64.3279L63 66.869L61.8586 71.137L52.3946 68.5961C47.7073 67.3376 42.8892 70.1248 41.6333 74.8215L39.1788 84L35.223 82.9379L37.6774 73.7598C38.9334 69.0631 36.1517 64.2355 31.4643 62.977L22 60.436L23.1414 56.1676L32.6058 58.7086C37.2931 59.9671 42.1111 57.1798 43.3671 52.4832L45.9031 43L49.8586 44.062L47.3226 53.5452Z" fill="black"/>
+        <path d="M91.6329 52.4832C92.8889 57.1798 97.707 59.9671 102.394 58.7087L111.859 56.1676L113 60.4357L103.536 62.9767C98.8483 64.2352 96.0666 69.0629 97.3226 73.7595L99.777 82.938L95.8216 84L93.3672 74.8218C92.1112 70.1251 87.2932 67.3379 82.6058 68.5964L73.1414 71.1374L72 66.869L81.4643 64.328C86.1517 63.0695 88.9334 58.2419 87.6774 53.5452L85.1415 44.062L89.097 43L91.6329 52.4832Z" fill="black"/>
+      </svg>
   );
 };
 

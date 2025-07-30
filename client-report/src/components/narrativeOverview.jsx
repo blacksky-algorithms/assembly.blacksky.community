@@ -28,17 +28,17 @@ const Overview = ({ conversation, ptptCount, ptptCountTotal, math, computedStats
 
         <p style={globals.paragraph}>
           {conversation && conversation.ownername
-            ? "This pol.is conversation was run by " + conversation.ownername + ". "
+            ? "This assembly.blacksky.community conversation was run by " + conversation.ownername + ". "
             : null}
           {conversation && conversation.topic
             ? "The topic was '" + conversation.topic + "'. "
             : null}
         </p>
         <p style={globals.secondaryHeading}>
-          <strong>Pol.is' New Narrative Report</strong>
+          <strong>Blacksky People's Assembly's New Narrative Report</strong>
         </p>
         <p style={globals.paragraph}>
-          You're seeing a beta version of Polis' new narrative report—generated with the help of
+          You're seeing a beta version of Blacksky People's Assembly's new narrative report—generated with the help of
           Large Language Models (LLMs). We are currently crowdsourcing evaluations of this report
           with the help of our user community—people like you! Thank you for participating in these
           early evaluations.

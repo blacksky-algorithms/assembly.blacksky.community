@@ -50,7 +50,7 @@ s.majorityOpinionShort = "Majority";
 s.info = "Info";
 
 s.helpWhatAmISeeingTitle = "What am I seeing?";
-s.helpWhatAmISeeing = "You are represented by the blue circle and grouped with others who share your perspective.";
+s.helpWhatAmISeeing = "You are represented by the brand circle and grouped with others who share your perspective.";
 s.heresHowGroupVoted = "Here's how Group {{GROUP_NUMBER}} voted:";
 s.one_person = "{{x}} person";
 s.x_people = "{{x}} people";
@@ -70,7 +70,7 @@ s.pctDisagreedLong = "{{pct}}% of everyone who voted on statement {{comment_id}}
 s.pctAgreedOfGroupLong = "{{pct}}% of those in group {{group}} who voted on statement {{comment_id}} agreed.";
 s.pctDisagreedOfGroupLong = "{{pct}}% of those in group {{group}} who voted on statement {{comment_id}} disagreed.";
 s.participantHelpGroupsText =
-  "You are represented by the blue circle and grouped with others who share your perspective.";
+  "You are represented by the brand circle and grouped with others who share your perspective.";
 s.participantHelpGroupsNotYetText = "The visualization will appear once 7 participants have begun voting";
 s.helpWhatAreGroupsDetail =
   "<p>Click on your group or others to explore each group's opinions.</p><p>Majority opinions are those most widely shared across groups.</p>";

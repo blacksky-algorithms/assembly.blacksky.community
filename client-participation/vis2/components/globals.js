@@ -56,7 +56,7 @@ export const axisLabels = {
 
 export const groupColor = (gid) => {
   if (gid === 0) {
-    return "#91bfdb"; /* light blue */
+    return "#91bfdb"; /* light brand */
   } else if (gid === 1) {
     return "#fc8d62"; /* bright orange salmon */
   } else if (gid === 2) {
@@ -90,7 +90,7 @@ export const colors = {
   agree: "rgb(46, 204, 113)",
   disagree: "rgb(231, 76, 60)",
   pass: "rgb(230,230,230)",
-  comment: "#03a9f4"
+  comment: "#6060E9"
 };
 
 export const d3colors = [

@@ -31,8 +31,7 @@ const getDomainPrefix = () => {
     return 'http://localhost:5000/';
   }
 
-  if (hostname.includes('pol.is')) return `https://${hostname}/`;
-  if (hostname.includes('polis.io')) return `https://${hostname}/`;
+  if (hostname.includes('assembly.blacksky.community')) return `https://${hostname}/`;
 
   if (serviceUrl) return `${serviceUrl}/`;
 

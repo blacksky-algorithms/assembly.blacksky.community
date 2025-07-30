@@ -6,7 +6,7 @@
 .box line,
 .box rect,
 .box circle {
-  fill: steelblue;
+  fill: #8686FF;
   stroke: #000;
   stroke-width: 1px;
 }

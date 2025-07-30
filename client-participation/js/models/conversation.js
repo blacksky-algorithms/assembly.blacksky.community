@@ -43,7 +43,7 @@ module.exports = Model.extend({
     url_name_with_hostname: function () {
       // build the URL for the user to copy & paste
       var s = "";
-      if (/pol.is/.exec(document.location.hostname)) {
+      if (/assembly.blacksky.community/.exec(document.location.hostname)) {
         // production
         s += "https://";
       }
@@ -52,7 +52,7 @@ module.exports = Model.extend({
       return s + this.url_name();
     },
     url_name_with_production_hostname: function () {
-      return "https://pol.is" + this.url_name();
+      return "https://assembly.blacksky.community" + this.url_name();
     },
     is_anon: false,
     is_draft: false,

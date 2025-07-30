@@ -67,7 +67,7 @@ const TopicsVizReport = ({ report_id }) => {
 
     // // If we have a topic job UUID, try to find a matching visualization job
     // if (topicJobUuid) {
-    //   const matchingJob = visualizationJobs.find(job => 
+    //   const matchingJob = visualizationJobs.find(job =>
     //     job.jobId === topicJobUuid && job.status === "COMPLETED"
     //   );
     //   if (matchingJob) {
@@ -90,18 +90,18 @@ const TopicsVizReport = ({ report_id }) => {
     // }
 
     // // Fallback: First, try to find a completed job with visualizations
-    // const completedJobWithViz = visualizationJobs.find(job => 
-    //   job.status === "COMPLETED" && 
-    //   job.visualizations && 
-    //   Array.isArray(job.visualizations) && 
+    // const completedJobWithViz = visualizationJobs.find(job =>
+    //   job.status === "COMPLETED" &&
+    //   job.visualizations &&
+    //   Array.isArray(job.visualizations) &&
     //   job.visualizations.length > 0
     // );
-    
+
     // if (completedJobWithViz) {
     //   console.log(`Using fallback visualization job ${completedJobWithViz.jobId}`);
     //   return completedJobWithViz;
     // }
-    
+
     // // If no completed job with visualizations, return the first job
     return visualizationJobs.filter(job => job.visualizations?.length > 0)[0];
   };
@@ -127,7 +127,7 @@ const TopicsVizReport = ({ report_id }) => {
     }
 
     const layerMap = new Map();
-    
+
     // Get layers from visualizations
     bestJob.visualizations
       .filter((vis) => vis && vis.type === "interactive")
@@ -153,7 +153,7 @@ const TopicsVizReport = ({ report_id }) => {
             const layerIdNum = parseInt(layerId);
             const topicsInLayer = latestRun.topics_by_layer[layerId];
             const topicCount = Object.keys(topicsInLayer).length;
-            
+
             if (layerMap.has(layerIdNum)) {
               layerMap.set(layerIdNum, {
                 layerId: layerIdNum,
@@ -247,11 +247,11 @@ const TopicsVizReport = ({ report_id }) => {
         }
 
         .layer-button:hover {
-          border-color: #03a9f4;
+          border-color: #6060E9;
         }
 
         .layer-button.active {
-          background: #03a9f4;
+          background: #6060E9;
           color: white;
           border-color: #0288d1;
         }
@@ -272,7 +272,7 @@ const TopicsVizReport = ({ report_id }) => {
           padding: 15px;
           background: #f5f5f5;
           border-radius: 6px;
-          border-left: 4px solid #03a9f4;
+          border-left: 4px solid #6060E9;
         }
 
         .job-header h3 {
@@ -418,7 +418,7 @@ const TopicsVizReport = ({ report_id }) => {
             )}
           </div>
           <p className="switcher-description">
-            Each colored region represents a topic—comments that share similar themes, language, or subject matter. 
+            Each colored region represents a topic—comments that share similar themes, language, or subject matter.
             Polis 2 uses advanced NLP embeddings and hierarchical clustering to mathematically identify these topics. Choose your preferred level of detail: finer grained shows specific subtopics, while coarse shows broader themes.
           </p>
           <div className="layer-buttons">

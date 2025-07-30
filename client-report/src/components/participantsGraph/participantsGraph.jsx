@@ -70,7 +70,7 @@ const ParticipantsGraph = (props) => {
   const getInnerRadialAxisColor = () => {
     let color = globals.brandColors.lightgrey;
     if (props.consensusDivisionColorScale && props.colorBlindMode) {
-      color = globals.brandColors.blue;
+      color = globals.brandColors.brand;
     } else if (props.consensusDivisionColorScale && !props.colorBlindMode) {
       color = props.voteColors.agree;
     }
@@ -123,10 +123,10 @@ const ParticipantsGraph = (props) => {
         <button
           style={{
             color: showAxes ? "white" : "black",
-            border: showAxes ? "1px solid #03A9F4" : "1px solid black",
+            border: showAxes ? "1px solid #6060E9" : "1px solid black",
             cursor: "pointer",
             borderRadius: 3,
-            background: showAxes ? "#03A9F4" : "none",
+            background: showAxes ? "#6060E9" : "none",
             padding: 4,
             marginRight: 20,
           }}
@@ -139,10 +139,10 @@ const ParticipantsGraph = (props) => {
         <button
           style={{
             color: showRadialAxes ? "white" : "black",
-            border: showRadialAxes ? "1px solid #03A9F4" : "1px solid black",
+            border: showRadialAxes ? "1px solid #6060E9" : "1px solid black",
             cursor: "pointer",
             borderRadius: 3,
-            background: showRadialAxes ? "#03A9F4" : "none",
+            background: showRadialAxes ? "#6060E9" : "none",
             padding: 4,
             marginRight: 20,
           }}
@@ -155,10 +155,10 @@ const ParticipantsGraph = (props) => {
         <button
           style={{
             color: showComments ? "white" : "black",
-            border: showComments ? "1px solid #03A9F4" : "1px solid black",
+            border: showComments ? "1px solid #6060E9" : "1px solid black",
             cursor: "pointer",
             borderRadius: 3,
-            background: showComments ? "#03A9F4" : "none",
+            background: showComments ? "#6060E9" : "none",
             padding: 4,
             marginRight: 20,
           }}
@@ -171,10 +171,10 @@ const ParticipantsGraph = (props) => {
         <button
           style={{
             color: showParticipants ? "white" : "black",
-            border: showParticipants ? "1px solid #03A9F4" : "1px solid black",
+            border: showParticipants ? "1px solid #6060E9" : "1px solid black",
             cursor: "pointer",
             borderRadius: 3,
-            background: showParticipants ? "#03A9F4" : "none",
+            background: showParticipants ? "#6060E9" : "none",
             padding: 4,
             marginRight: 20,
           }}
@@ -187,10 +187,10 @@ const ParticipantsGraph = (props) => {
         <button
           style={{
             color: showGroupOutline ? "white" : "black",
-            border: showGroupOutline ? "1px solid #03A9F4" : "1px solid black",
+            border: showGroupOutline ? "1px solid #6060E9" : "1px solid black",
             cursor: "pointer",
             borderRadius: 3,
-            background: showGroupOutline ? "#03A9F4" : "none",
+            background: showGroupOutline ? "#6060E9" : "none",
             padding: 4,
             marginRight: 20,
           }}
@@ -203,10 +203,10 @@ const ParticipantsGraph = (props) => {
         <button
           style={{
             color: showGroupLabels ? "white" : "black",
-            border: showGroupLabels ? "1px solid #03A9F4" : "1px solid black",
+            border: showGroupLabels ? "1px solid #6060E9" : "1px solid black",
             cursor: "pointer",
             borderRadius: 3,
-            background: showGroupLabels ? "#03A9F4" : "none",
+            background: showGroupLabels ? "#6060E9" : "none",
             padding: 4,
             marginRight: 20,
           }}

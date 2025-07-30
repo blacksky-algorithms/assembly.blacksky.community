@@ -14,7 +14,7 @@ var eb = require("../eventBus");
 var GroupSelectionView = require("../views/groupSelectionView");
 var { markdown } = require("markdown");
 var ParticipantModel = require("../models/participant");
-var polisLogoBase64 = require("../images/polis_logo");
+var blackskyLogoBase64 = require("../images/blacksky_logo");
 var preloadHelper = require("../util/preloadHelper");
 var ReadReactView = require("../views/ReadReactView");
 var Strings = require("../strings");
@@ -138,11 +138,11 @@ module.exports = ConversationView.extend({
     ctx.no_description = !Utils.userCanSeeDescription() || !ctx.description || ctx.description.length === 0;
     ctx.no_footer = !Utils.userCanSeeFooter();
 
-    ctx.help_bgcolor = ctx.help_bgcolor || "#CAEAFF";
-    ctx.help_color = ctx.help_color || "#3498DB";
+    ctx.help_bgcolor = ctx.help_bgcolor || "#EAEBFC";
+    ctx.help_color = ctx.help_color || "#6060E9";
 
     var temp = Strings.addPolisToYourSite;
-    temp = temp.replace("{{URL}}", polisLogoBase64);
+    temp = temp.replace("{{URL}}", blackskyLogoBase64);
     ctx.addPolisToYourSite = temp;
 
     ctx.show_admin_button = false; //ctx.is_owner;
@@ -863,7 +863,7 @@ module.exports = ConversationView.extend({
       }, 300); // wait a bit to let the dot blink before moving it.
     }, 200);
 
-    // Wait for PCA to download, so we don't fire an event with only the blue dot.
+    // Wait for PCA to download, so we don't fire an event with only the brand dot.
     // That would cause the vis blocker to flash.
     this.firstMathPollResultDeferred.then(function () {
       that.votesByMe.on("add", updateMyProjectionAfterAddingVote);

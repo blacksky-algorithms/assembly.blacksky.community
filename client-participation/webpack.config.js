@@ -83,7 +83,7 @@ module.exports = (env, options) => {
   // Get environment variables with defaults
   const apiUrl = process.env.API_URL || "http://localhost:5000";
   const conversationId = process.env.CONVERSATION_ID;
-  const embedServiceHostname = process.env.EMBED_SERVICE_HOSTNAME || "pol.is";
+  const embedServiceHostname = process.env.EMBED_SERVICE_HOSTNAME || "assembly.blacksky.community";
   const gaTrackingId = process.env.GA_TRACKING_ID;
   const oidcCacheKeyPrefix = process.env.OIDC_CACHE_KEY_PREFIX || "oidc.user";
   const oidcCacheKeyIdTokenSuffix = process.env.OIDC_CACHE_KEY_ID_TOKEN_SUFFIX || "@@user@@";

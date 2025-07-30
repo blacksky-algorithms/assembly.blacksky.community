@@ -25,7 +25,7 @@ class GraphComment extends React.Component {
           width="20"
           x={this.getRectX()}
           y={-13}
-          fill={this.props.isSelected ? "#0090ff" : "none"}
+          fill={this.props.isSelected ? "#6060E9" : "none"}
           rx="3"
           ry="3"
           strokeWidth="2"
@@ -106,7 +106,7 @@ class GraphComments extends React.Component {
 
 // <circle
 //     r={4}
-//     stroke={"blue"}
+//     stroke={"brand"}
 //     fill={"rgba(0,0,0,0)"}
 //     key={9999999}
 //     cx={xx(0*xScaleup)}

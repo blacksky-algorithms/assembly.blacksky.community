@@ -24,14 +24,14 @@ const TopicReport = ({ report_id, math, comments, conversation, ptptCount, forma
         section: topicKey  // The topic key IS the section (e.g., "layer0_8")
       })
       .then((response) => {
-        
+
         if (response && response.status === "success" && response.reports) {
           // The response contains reports object with the section as key
           const sectionData = response.reports[topicKey] || response.reports[Object.keys(response.reports).map(key => key.includes(topicKey))];
           if (sectionData && sectionData.report_data) {
             // Parse the report_data if it's a string
-            const reportData = typeof sectionData.report_data === 'string' 
-              ? JSON.parse(sectionData.report_data) 
+            const reportData = typeof sectionData.report_data === 'string'
+              ? JSON.parse(sectionData.report_data)
               : sectionData.report_data;
             setTopicContent(reportData);
           } else {
@@ -129,7 +129,7 @@ const TopicReport = ({ report_id, math, comments, conversation, ptptCount, forma
           ))}
           </div>
         </div>
-        
+
         {/* Comments list section - side by side */}
         {citationIds.length > 0 && comments && comments.length > 0 && (
           <div className="topic-comments-column" style={{ overflowX: "scroll"}}>
@@ -143,7 +143,7 @@ const TopicReport = ({ report_id, math, comments, conversation, ptptCount, forma
               comments={comments}
               voteColors={voteColors || {
                 agree: "#21a53a",
-                disagree: "#e74c3c", 
+                disagree: "#e74c3c",
                 pass: "#b3b3b3"
               }}
               style={{
@@ -184,7 +184,7 @@ const TopicReport = ({ report_id, math, comments, conversation, ptptCount, forma
           padding: 15px;
           background: #f5f5f5;
           border-radius: 6px;
-          border-left: 4px solid #03a9f4;
+          border-left: 4px solid #6060E9;
         }
         .run-info-header h3 {
           margin: 0 0 8px 0;
@@ -256,31 +256,31 @@ const TopicReport = ({ report_id, math, comments, conversation, ptptCount, forma
           padding: 20px;
           color: #666;
         }
-        
+
         /* Responsive stacking for smaller screens */
         @media (max-width: 992px) {
           .topic-layout-container {
             flex-direction: column;
           }
-          
+
           .topic-text-content,
           .topic-comments-column {
             flex-basis: auto;
             width: 100%;
           }
-          
+
           .topic-comments-column {
             margin-top: 30px;
           }
         }
       `}</style>
-      
+
       {/* Run Information Header */}
       <div className="run-info-header">
         <h3>Narrative Summaries</h3>
       </div>
-      
-      <TopicSelector 
+
+      <TopicSelector
         sections={sections}
         selectedTopic={selectedTopic}
         onTopicChange={handleTopicChange}

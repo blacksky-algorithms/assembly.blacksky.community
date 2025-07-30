@@ -22,7 +22,7 @@ class Button extends React.Component {
               : 500,
           backgroundColor:
             !_.isNull(this.props.selectedTidCuration) && this.props.selectedTidCuration === this.props.identifier
-              ? "#03a9f4"
+              ? "#6060E9"
               : "rgb(235,235,235)",
           color:
             !_.isNull(this.props.selectedTidCuration) && this.props.selectedTidCuration === this.props.identifier

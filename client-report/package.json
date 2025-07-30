@@ -1,7 +1,7 @@
 {
-  "name": "polis-report",
+  "name": "blacksky-peoples-assembly-report",
   "version": "0.0.2",
-  "description": "pol.is report",
+  "description": "Blacksky People's Assembly report",
   "scripts": {
     "build:dev": "webpack --config webpack.dev.js",
     "build:prod": "webpack",

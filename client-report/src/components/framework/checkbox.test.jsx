@@ -9,7 +9,7 @@ describe('Checkbox Component', () => {
   it('renders checkbox with correct initial state and styles', () => {
     const label = 'Test Label';
     const isChecked = true;
-    const color = 'blue'; // Override default color
+    const color = 'brand'; // Override default color
 
     render(<Checkbox label={label} isChecked={isChecked} color={color} />);
 

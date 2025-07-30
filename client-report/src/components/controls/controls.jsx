@@ -29,7 +29,7 @@ const Controls = ({
         clickHandler={checkboxGroupChanged}
         labelPosition="left"
         labelWrapperColor={settings.darkerGray}
-        color={settings.polisBlue}
+        color={settings.brand}
       />
       <Checkbox
         label="color blind mode"
@@ -38,7 +38,7 @@ const Controls = ({
         clickHandler={handleColorblindModeClick}
         labelPosition="left"
         labelWrapperColor={settings.darkerGray}
-        color={settings.polisBlue}
+        color={settings.brand}
       />
     </div>
   );

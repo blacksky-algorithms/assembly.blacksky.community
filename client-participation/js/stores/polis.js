@@ -1196,7 +1196,7 @@ module.exports = function (params) {
       // remove PTPTOIs from their buckets
       for (var i = 0; i < participantsOfInterestBids.length; i++) {
         if (participantsOfInterestBids.indexOf(bucket.bid) >= 0) {
-          // Don't decrement if this participant is self, since we subtract for the blue dot below
+          // Don't decrement if this participant is self, since we subtract for the brand dot below
           if (bucket.bid !== myBid) {
             bucket.count -= 1;
           }

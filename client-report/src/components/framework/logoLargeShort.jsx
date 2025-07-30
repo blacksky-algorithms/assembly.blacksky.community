@@ -12,44 +12,16 @@ const PolisLogo = ({ invert = false }) => {
   };
 
   const svgContent = (
-    <svg width="87px" height="100px" viewBox="0 0 87 100" >
-      <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
-        <g id="100x100-transparent">
-          <g id="Group">
-            <polygon id="Polygon-1" fill={invert ? "#FFFFFF" : "#03A9F4"} points="43.3338275 0 86.6676551 25 86.6676551 75 43.3338275 100 1.85649324e-14 75 -9.34924652e-15 25"></polygon>
-            <path d="M12.406015,29.7520661 L15.7142857,38.0165289" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <text id="p." fontFamily="Georgia" fontSize="59.1940957" fontWeight="normal" fill={invert ? "#03A9F4" : "#FFFFFF" }>
-                <tspan x="25.6390977" y="58.9586777">p.</tspan>
-            </text>
-            <path d="M69.887218,53.3057851 L78.9849624,39.2561983" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <path d="M59.962406,80.5785124 L68.6466165,74.3801653" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <path d="M43.0075188,88.4297521 L50.4511278,74.3801653" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <path d="M8.27067669,64.4628099 L15.7142857,39.6694215" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <path d="M59.962406,80.5785124 L68.6466165,74.3801653" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="78.9849624" cy="39.2561983" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="62.443609" cy="30.9917355" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="11.9924812" cy="29.338843" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="16.1278195" cy="38.4297521" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="7.85714286" cy="64.8760331" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="50.8646617" cy="73.9669421" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="49.2105263" cy="22.7272727" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="31.0150376" cy="23.553719" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="34.3233083" cy="17.768595" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="42.593985" cy="14.4628099" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="42.593985" cy="88.8429752" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="59.962406" cy="80.5785124" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="59.962406" cy="72.3140496" rx="1.2406015" ry="1.23966942"></ellipse>
-            <ellipse id="Oval-17" fill={invert ? "#03A9F4" : "#FFFFFF" } cx="68.2330827" cy="74.7933884" rx="1.2406015" ry="1.23966942"></ellipse>
-            <path d="M34.3233083,17.768595 L48.7969925,22.3140496" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-            <path d="M31.4285714,23.1404959 L33.9097744,18.1818182" id="Line" stroke={invert ? "#03A9F4" : "#FFFFFF" } strokeWidth="0.3" strokeLinecap="square"></path>
-          </g>
-        </g>
-      </g>
-  </svg>
+    <svg width="66" height="57" viewBox="0 0 66 57" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M34.4307 33.4412C34.4307 36.9545 37.2796 39.8025 40.793 39.8025H47.8867V26.3474H47.8877V56.2234H47.8867V42.9958H40.793C37.2796 42.9958 34.4307 45.8438 34.4307 49.3572V56.2234H31.4668V49.3572C31.4668 45.8438 28.6188 42.9958 25.1055 42.9958H18.0117V39.8025H25.1055C28.6188 39.8025 31.4668 36.9545 31.4668 33.4412V26.3474H34.4307V33.4412Z" fill="black"/>
+      <path d="M39.5461 7.37392C37.0618 9.85825 37.0618 13.8861 39.5461 16.3705L44.5622 21.3866L42.3045 23.6444L37.2883 18.6282C34.804 16.1439 30.7761 16.1439 28.2918 18.6282L23.437 23.483L21.3404 21.3864L26.1952 16.5316C28.6795 14.0473 28.6795 10.0194 26.1952 7.5351L21.1792 2.51911L23.437 0.261353L28.4531 5.2775C30.9374 7.7618 34.9653 7.76182 37.4496 5.2775L42.4658 0.261353L44.5622 2.35778L39.5461 7.37392Z" fill="black"/>
+      <path d="M18.2848 17.4248C17.3754 20.8185 19.3894 24.3067 22.783 25.2161L29.6352 27.0521L28.8089 30.136L21.9569 28.3001C18.5633 27.3907 15.075 29.4047 14.1657 32.7983L12.3886 39.4303L9.52464 38.6629L11.3016 32.0311C12.211 28.6375 10.197 25.1492 6.80335 24.2399L-0.0488281 22.4039L0.77757 19.3197L7.62975 21.1558C11.0234 22.0651 14.5116 20.0511 15.421 16.6575L17.257 9.8053L20.1208 10.5726L18.2848 17.4248Z" fill="black"/>
+      <path d="M50.5243 16.5221C51.4336 19.9157 54.9219 21.9297 58.3155 21.0204L65.1677 19.1843L65.994 22.2683L59.1418 24.1043C55.7482 25.0136 53.7343 28.5019 54.6436 31.8956L56.4206 38.5276L53.5569 39.2949L51.7799 32.6631C50.8705 29.2695 47.3823 27.2555 43.9886 28.1648L37.1365 30.0009L36.3101 26.9167L43.1622 25.0807C46.5559 24.1714 48.5698 20.6831 47.6605 17.2895L45.8245 10.4373L48.6882 9.66992L50.5243 16.5221Z" fill="black"/>
+    </svg>
   );
 
   return (
-    <a style={styles.link} href="http://pol.is">
+    <a style={styles.link} href="https//assembly.blacksky.community">
       {svgContent}
     </a>
   );

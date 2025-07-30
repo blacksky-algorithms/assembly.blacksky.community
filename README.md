@@ -20,7 +20,7 @@ For a detailed methods paper, see [Polis: Scaling Deliberation by Mapping High D
 If you're interested in using or contributing to Polis, please see the following:
 
 - [📚 **knowledge base**][knowledge-base]: for a comprehensive wiki to help you understand and use the system
-- [🌐 **main deployment**](https://pol.is): the main deployment of Polis is at <https://pol.is>, and is
+- [🌐 **main deployment**](https://assembly.blacksky.community): the main deployment of Polis is at <https://pol.is>, and is
   free to use for nonprofits and government
 - [💬 **discussions**][discussions]: for questions (QA) and discussion
 - [✔️ **issues**][issues]: for well-defined technical issues

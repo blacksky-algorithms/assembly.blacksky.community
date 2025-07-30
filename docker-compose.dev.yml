@@ -20,6 +20,7 @@ services:
       - /app/node_modules
       # Mount mkcert root CA for TLS verification
       - ${AUTH_CERTS_PATH:-~/.simulacrum/certs}:/root/.simulacrum/certs:ro
+      - "${HOME}/Library/Application Support/mkcert/rootCA.pem:/etc/ssl/certs/mkcert_rootCA.pem:ro"
       # Mount JWT keys for participant authentication
       - ${AUTH_KEYS_PATH:-./server/keys}:/app/keys:ro
     ports:
@@ -27,7 +28,7 @@ services:
       - "9229:9229"
     environment:
       # Tell Node.js to trust the mkcert CA for HTTPS connections
-      - NODE_EXTRA_CA_CERTS=/root/.simulacrum/certs/rootCA.pem
+      - NODE_EXTRA_CA_CERTS=/etc/ssl/certs/mkcert_rootCA.pem
 
   math:
     # command: clojure -X:dev-poller

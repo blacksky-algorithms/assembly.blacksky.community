@@ -1,18 +1,18 @@
 export default {
   footer: {
-    copyright: 'The Authors. All Rights Reserved.',
-    social: ['https://github.com/pol-is/', 'https://twitter.com/usepolis'],
+    copyright: 'Blacksky Algorithms. All Rights Reserved.',
+    social: ['https://github.com/blacksky-algorithms/', 'https://blacksky.community/profile/moderation.blacksky.app'],
     groups: [
       {
         heading: 'Company',
         links: [
           {
             title: 'About',
-            url: 'https://pol.is/company'
+            url: 'https://blackskyweb.xyz'
           },
           {
             title: 'Blog',
-            url: 'https://blog.pol.is/'
+            url: 'https://blog.rudyfraser.com'
           }
         ]
       },
@@ -21,7 +21,7 @@ export default {
         links: [
           {
             title: 'FAQ',
-            url: 'https://compdemocracy.org/faq'
+            url: 'https://docs.blackskyweb.xyz'
           }
         ]
       },
@@ -30,11 +30,11 @@ export default {
         links: [
           {
             title: 'Terms',
-            url: 'https://pol.is/tos'
+            url: 'https://blackskyweb.xyz/about/support/tos'
           },
           {
             title: 'Privacy',
-            url: 'https://pol.is/privacy'
+            url: 'https://blackskyweb.xyz/about/support/privacy-policy'
           }
         ]
       }

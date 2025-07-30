@@ -26,14 +26,14 @@ $light-blue-gray: #6f7c80;
 $blue-gray: #555f61;
 $dark-blue-gray: #373d3f;
 
-$green: #2ecc71;
+$green: #61C554;
 $dark-green: #27ae60;
 
 $header-footer-color: #f4f4f4;
 
 // $brand-light-color: #4daae8;
-$brand-color: #3498db;
-$brand-text-color: #0a77bf;
+$brand-color: #8686FF;
+$brand-text-color: #DCDCFF;
 
 $panel-color: #f7f7f7;
 
@@ -45,17 +45,17 @@ $default-border-color: #e4e4e4;
 
 // Links
 $link-color: $brand-text-color;
-$hover-color: #0565a6;
+$hover-color: $brand-color;
 
 // Buttons
-$btn-hover-color: #0a77bf;
+$btn-hover-color: $brand-color;
 
 // Notifications
 $warning-bg-color: #eeeff0;
 $warning-text-color: $medium-gray;
 
-$danger-bg-color: red;
-$danger-text-color: white;
+$danger-bg-color: #F40B42;
+$danger-text-color: #F8FAF9;
 
 $positive-bg-color: $green;
 $positive-text-color: white;
@@ -104,9 +104,9 @@ $tall-footer-height: 250px;
 // ----------------------------------------------------------------------------
 // VISUALIZATIONS
 // ----------------------------------------------------------------------------
-$color_agree: rgb(0, 181, 77);
-$color_disagree: #e74c3c; // ALIZARIN
-$color_pass: #bdc3c7; // SILVER
-$color_self: #0cf; // blue like the dot on a map
-$color_star: yellow; // TODO find right color
-$color_selected_comment: #f7f7f7;
+$color_agree: $green;
+$color_disagree: #F40B42;
+$color_pass: #848484;
+$color_self: #8686FF;
+$color_star: #FDD912;
+$color_selected_comment: #F8FAF9;
