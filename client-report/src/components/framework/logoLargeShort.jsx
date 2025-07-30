@@ -21,7 +21,7 @@ const PolisLogo = ({ invert = false }) => {
   );
 
   return (
-    <a style={styles.link} href="https//assembly.blacksky.community">
+    <a style={styles.link} href="https://assembly.blacksky.community">
       {svgContent}
     </a>
   );
