@@ -30,21 +30,21 @@ export default (
   ollamaKeyPair: ec2.IKeyPair | undefined,
   ollamaSecurityGroup: ec2.ISecurityGroup
 ) => {
-  // Generic User Data function (Works with NAT Gateway for internet)
   const usrdata = (CLOUDWATCH_LOG_GROUP_NAME: string, service: string, instanceSize?: string) => {
     let ld: ec2.UserData;
     ld = ec2.UserData.forLinux();
+    const persistentConfigDir = '/etc/app-info';
     ld.addCommands(
       '#!/bin/bash',
       'set -e',
       'set -x',
-      `echo "Writing service type '${service}' to /tmp/service_type.txt"`,
-      `echo "${service}" > /tmp/service_type.txt`,
-      `echo "Contents of /tmp/service_type.txt: $(cat /tmp/service_type.txt)"`,
-      // If instanceSize is provided, write it to a file
-      instanceSize ? `echo "Writing instance size '${instanceSize}' to /tmp/instance_size.txt"` : '',
-      instanceSize ? `echo "${instanceSize}" > /tmp/instance_size.txt` : '',
-      instanceSize ? `echo "Contents of /tmp/instance_size.txt: $(cat /tmp/instance_size.txt)"` : '',
+      `sudo mkdir -p ${persistentConfigDir}`,
+      `sudo chown root:root ${persistentConfigDir}`,
+      `sudo chmod 755 ${persistentConfigDir}`,
+      `echo "Writing service type '${service}' to ${persistentConfigDir}/service_type.txt"`,
+      `echo "${service}" | sudo tee ${persistentConfigDir}/service_type.txt`,
+      instanceSize ? `echo "Writing instance size '${instanceSize}' to ${persistentConfigDir}/instance_size.txt"` : '',
+      instanceSize ? `echo "${instanceSize}" | sudo tee ${persistentConfigDir}/instance_size.txt` : '',
       'sudo yum update -y',
       'sudo yum install -y amazon-cloudwatch-agent -y',
       'sudo dnf install -y wget ruby docker',
@@ -53,13 +53,13 @@ export default (
       'sudo usermod -a -G docker ec2-user',
       'sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose',
       'sudo chmod +x /usr/local/bin/docker-compose',
-      'docker-compose --version', // Verify installation
+      'docker-compose --version',
       'sudo yum install -y jq',
       `export SERVICE=${service}`,
       instanceSize ? `export INSTANCE_SIZE=${instanceSize}` : '',
       'exec 1>>/var/log/user-data.log 2>&1',
       'echo "Finished User Data Execution at $(date)"',
-      'sudo mkdir -p /etc/docker', // Ensure /etc/docker directory exists
+      'sudo mkdir -p /etc/docker',
 `cat << EOF | sudo tee /etc/docker/daemon.json
 {
   "log-driver": "awslogs",
@@ -69,10 +69,10 @@ export default (
     "awslogs-stream": "${service}"
   }
 }
-EOF`, // Ensure EOF is on a new line with no leading/trailing spaces
-    `sudo chmod 644 /etc/docker/daemon.json`, // Good practice to set permissions
+EOF`,
+    `sudo chmod 644 /etc/docker/daemon.json`,
     'sudo systemctl restart docker',
-      'sudo systemctl status docker'
+    'sudo systemctl status docker'
     );
     return ld;
   };

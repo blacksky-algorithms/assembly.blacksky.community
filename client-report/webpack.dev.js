@@ -10,7 +10,7 @@ const serviceUrl = process.env.SERVICE_URL || 'http://localhost:5000';
 module.exports = {
   ...common,
   mode: 'development',
-  devtool: 'inline-source-map',
+  devtool: 'inline-cheap-module-source-map',
   output: {
     filename: 'report_bundle.js',
     path: path.resolve(__dirname, 'devel'),
@@ -30,7 +30,6 @@ module.exports = {
   devServer: {
     compress: true,
     hot: true,
-    open: "index_report.html",
     port: 5010,
     proxy: {
       '/api': {
@@ -41,11 +40,25 @@ module.exports = {
     static: {
       directory: path.join(__dirname, 'public'),
     },
-    historyApiFallback: true
+    historyApiFallback: {
+      index: '/index_report.html',
+      rewrites: [
+        { from: /^\/report\/.*$/, to: '/index_report.html' },
+        { from: /^\/commentsReport\/.*$/, to: '/index_report.html' },
+        { from: /^\/topicReport\/.*$/, to: '/index_report.html' },
+        { from: /^\/narrativeReport\/.*$/, to: '/index_report.html' },
+        { from: /^\/topicsVizReport\/.*$/, to: '/index_report.html' },
+        { from: /^\/exportReport\/.*$/, to: '/index_report.html' },
+        { from: /^\/topicPrioritize\/.*$/, to: '/index_report.html' },
+        { from: /^\/topicPrioritizeSimple\/.*$/, to: '/index_report.html' },
+        { from: /^\/topicAgenda\/.*$/, to: '/index_report.html' },
+        { from: /^\/topicHierarchy\/.*$/, to: '/index_report.html' }
+      ]
+    }
   },
   performance: {
     // TODO: Find and remove orphan modules; Reduce bundle size.
-    hints: 'warning', // 'error' for errors, 'warning' for warnings, false to disable
+    hints: false, // 'error' for errors, 'warning' for warnings, false to disable
     maxAssetSize: 7100000, // Size limit in bytes, default is 250000 (250 KB)
     maxEntrypointSize: 7100000, // Size limit in bytes, default is 250000 (250 KB)
   },

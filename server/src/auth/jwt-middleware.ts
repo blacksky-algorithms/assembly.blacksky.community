@@ -84,6 +84,8 @@ const extractUserFromJWT = (
           req.p.oidcUser = req.jwtPayload; // Keep the original OIDC user data
           req.p.oidcSub = oidcSub; // Keep the OIDC sub for reference
           req.p.emailVerified = req.jwtPayload.email_verified; // Store email verification status
+          req.p.delphiEnabled =
+            req.jwtPayload[`${Config.authNamespace}delphi_enabled`];
 
           // Use the assigner function for uid (canonical parameter middleware pattern)
           if (assigner) {

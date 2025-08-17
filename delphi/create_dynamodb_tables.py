@@ -250,12 +250,19 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                     ],
                     'Projection': {'ProjectionType': 'ALL'},
                     'ProvisionedThroughput': {'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
+                },
+                {
+                    'IndexName': 'zid-index',
+                    'KeySchema': [
+                        {'AttributeName': 'conversation_id', 'KeyType': 'HASH'}
+                    ],
+                    'Projection': {
+                        'ProjectionType': 'ALL'
+                    },
+                    'BillingMode': 'PAY_PER_REQUEST'
                 }
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         'Delphi_NarrativeReports': {
             'KeySchema': [
@@ -289,10 +296,7 @@ def create_evoc_tables(dynamodb, delete_existing=False):
             'AttributeDefinitions': [
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         'Delphi_CommentEmbeddings': {
             'KeySchema': [
@@ -303,10 +307,7 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
                 {'AttributeName': 'comment_id', 'AttributeType': 'N'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         'Delphi_CommentHierarchicalClusterAssignments': {
             'KeySchema': [
@@ -317,10 +318,7 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
                 {'AttributeName': 'comment_id', 'AttributeType': 'N'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         'Delphi_CommentClustersStructureKeywords': {
             'KeySchema': [
@@ -331,10 +329,7 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
                 {'AttributeName': 'cluster_key', 'AttributeType': 'S'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         'Delphi_UMAPGraph': {
             'KeySchema': [
@@ -345,10 +340,7 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
                 {'AttributeName': 'edge_id', 'AttributeType': 'S'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         
         # Extended tables
@@ -361,10 +353,7 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
                 {'AttributeName': 'cluster_key', 'AttributeType': 'S'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
         },
         'Delphi_CommentClustersLLMTopicNames': {
             'KeySchema': [
@@ -375,10 +364,43 @@ def create_evoc_tables(dynamodb, delete_existing=False):
                 {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
                 {'AttributeName': 'topic_key', 'AttributeType': 'S'}
             ],
-            'ProvisionedThroughput': {
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            'BillingMode': 'PAY_PER_REQUEST'
+        },
+        # Topic Agenda table for storing user selections
+        'Delphi_TopicAgendaSelections': {
+            'KeySchema': [
+                {'AttributeName': 'conversation_id', 'KeyType': 'HASH'},
+                {'AttributeName': 'participant_id', 'KeyType': 'RANGE'}
+            ],
+            'AttributeDefinitions': [
+                {'AttributeName': 'conversation_id', 'AttributeType': 'S'},
+                {'AttributeName': 'participant_id', 'AttributeType': 'S'}
+            ],
+            'BillingMode': 'PAY_PER_REQUEST'
+        },
+        # Collective Statement table for storing AI-generated group statements
+        'Delphi_CollectiveStatement': {
+            'KeySchema': [
+                {'AttributeName': 'zid_topic_jobid', 'KeyType': 'HASH'}
+            ],
+            'AttributeDefinitions': [
+                {'AttributeName': 'zid_topic_jobid', 'AttributeType': 'S'},
+                {'AttributeName': 'zid', 'AttributeType': 'S'},
+                {'AttributeName': 'created_at', 'AttributeType': 'S'}
+            ],
+            'GlobalSecondaryIndexes': [
+                {
+                    'IndexName': 'zid-created_at-index',
+                    'KeySchema': [
+                        {'AttributeName': 'zid', 'KeyType': 'HASH'},
+                        {'AttributeName': 'created_at', 'KeyType': 'RANGE'}
+                    ],
+                    'Projection': {
+                        'ProjectionType': 'ALL'
+                    }
+                }
+            ],
+            'BillingMode': 'PAY_PER_REQUEST'
         }
     }
     

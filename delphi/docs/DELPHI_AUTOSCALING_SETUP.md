@@ -85,11 +85,11 @@ const usrdata = (CLOUDWATCH_LOG_GROUP_NAME: string, service: string, instanceSiz
     '#\!/bin/bash',
     'set -e',
     'set -x',
-    `echo "Writing service type '${service}' to /tmp/service_type.txt"`,
-    `echo "${service}" > /tmp/service_type.txt`,
+    `echo "Writing service type '${service}' to /etc/app-info/service_type.txt"`,
+    `echo "${service}" > /etc/app-info/service_type.txt`,
     // If instanceSize is provided, write it to a file
-    instanceSize ? `echo "Writing instance size '${instanceSize}' to /tmp/instance_size.txt"` : '',
-    instanceSize ? `echo "${instanceSize}" > /tmp/instance_size.txt` : '',
+    instanceSize ? `echo "Writing instance size '${instanceSize}' to /etc/app-info/instance_size.txt"` : '',
+    instanceSize ? `echo "${instanceSize}" > /etc/app-info/instance_size.txt` : '',
     // ... additional setup commands ...
   );
   return ld;
@@ -216,8 +216,8 @@ elif [ "$SERVICE_FROM_FILE" == "delphi" ]; then
   echo "Starting docker-compose up for 'delphi' service"
   
   # Check if instance size file exists
-  if [ -f "/tmp/instance_size.txt" ]; then
-    INSTANCE_SIZE=$(cat /tmp/instance_size.txt)
+  if [ -f "/etc/app-info/instance_size.txt" ]; then
+    INSTANCE_SIZE=$(cat /etc/app-info/instance_size.txt)
     echo "Instance size detected: $INSTANCE_SIZE"
     
     # Set environment variables based on instance size

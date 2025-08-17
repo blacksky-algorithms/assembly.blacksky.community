@@ -28,13 +28,28 @@ import TopicReport from "./topicReport/TopicReport.jsx";
 import ExportReport from "./exportReport/ExportReport.jsx";
 import TopicsVizReport from "./topicsVizReport/TopicsVizReport.jsx";
 import TopicMapNarrativeReport from "./topicMapNarrativeReport.jsx";
+import TopicStats from "./topicStats/TopicStats.jsx";
+import TopicPage from "./topicPage/TopicPage.jsx";
+import CollectiveStatementsReport from "./collectiveStatementsReport/CollectiveStatementsReport.jsx";
+import { enrichMathWithNormalizedConsensus } from "../util/normalizeConsensus.js";
 
-const pathname = window.location.pathname; // "/report/2arcefpshi" or "/commentsReport/2arcefpshi" or "/topicReport/2arcefpshi" or "/topicsVizReport/2arcefpshi" or "/exportReport/2arcefpshi"
-const route_type = pathname.split("/")[1]; // "report", "narrativeReport", "commentsReport", "topicReport", "topicsVizReport", or "exportReport", or "topicMapNarrativeReport"
-const report_id = pathname.split("/")[2];
+const pathname = window.location.pathname; // "/report/2arcefpshi" or "/commentsReport/2arcefpshi" or "/topicReport/2arcefpshi" or "/topicsVizReport/2arcefpshi" or "/exportReport/2arcefpshi" or "/topicStats/2arcefpshi"
+const pathParts = pathname.split("/");
+const route_type = pathParts[1]; // "report", "narrativeReport", "commentsReport", "topicReport", "topicsVizReport", "exportReport", or "topicStats"
+
+const report_id = pathParts[2];
+
+// For topic detail pages: /topicStats/report_id/topic_key
+// Topic key can be in format: uuid#layer#cluster or layer_cluster
+let topic_key = null;
+if (route_type === "topicStats" && pathParts.length > 3) {
+  // Get the topic key from the URL path and decode it
+  // Replace %23 with # to restore the original format
+  topic_key = pathParts[3].replace(/%23/g, '#');
+}
 
 // Debug the route
-console.log("ROUTE CHECK:", { pathname, route_type, report_id });
+console.log("ROUTE CHECK:", { pathname, route_type, report_id, topic_key });
 
 function assertExists(obj, key) {
   if (typeof obj[key] === "undefined") {
@@ -539,7 +554,10 @@ const App = (props) => {
         var uniqueCommenters = {};
         var voteTotals = DataUtils.getVoteTotals(mathResult);
         _comments = _comments.map((c) => {
-          c["group-aware-consensus"] = mathResult["group-aware-consensus"][c.tid];
+          // Use normalized consensus if available, fall back to raw
+          c["group-aware-consensus"] = mathResult["group-consensus-normalized"] ? 
+            mathResult["group-consensus-normalized"][c.tid] : 
+            mathResult["group-aware-consensus"][c.tid];
           uniqueCommenters[c.pid] = 1;
           c = Object.assign(c, voteTotals[c.tid]);
           return c;
@@ -553,6 +571,9 @@ const App = (props) => {
           votesPerVoterAvg: totalVotes / _ptptCountTotal,
           commentsPerCommenterAvg: _comments.length / numUniqueCommenters,
         };
+
+        // Enrich math results with normalized consensus values
+        mathResult = enrichMathWithNormalizedConsensus(mathResult);
 
         setLoading(false);
         setMath(mathResult);
@@ -587,7 +608,12 @@ const App = (props) => {
   };
 
   useEffect(() => {
-    const init = async () => {
+    const init = async () => {      
+      if (!report_id) {
+        console.error("No report_id found - API calls will not be made");
+        return;
+      }
+      
       await getData(token);
 
       // Call to the Delphi endpoint to get LLM-generated topic names
@@ -783,6 +809,7 @@ const App = (props) => {
         ptptCount={ptptCount}
         formatTid={formatTid}
         voteColors={voteColors}
+        authToken={token}
       />
     );
   }
@@ -822,6 +849,58 @@ const App = (props) => {
         computeVoteTotal={computeVoteTotal}
         globals={globals}
         comments={comments}
+        formatTid={formatTid}
+        voteColors={voteColors}
+      />
+    )
+  }
+
+  if (route_type === "topicStats") {
+    // If we have a topic_key, render the individual topic page
+    if (topic_key) {
+      console.log("RENDERING: TopicPage for topic", topic_key);
+      return (
+        <TopicPage
+          conversation={conversation}
+          report_id={report_id}
+          topic_key={topic_key}
+          math={math}
+          comments={comments}
+          ptptCount={ptptCount}
+          formatTid={formatTid}
+          voteColors={voteColors}
+          onBack={() => {
+            // Navigate back to the topic stats overview
+            window.location.href = `/topicStats/${report_id}`;
+          }}
+        />
+      );
+    }
+    
+    // Otherwise render the topic stats overview
+    console.log("RENDERING: TopicStats");
+    return (
+      <TopicStats
+        conversation={conversation}
+        report_id={report_id}
+        math={math}
+        comments={comments}
+        ptptCount={ptptCount}
+        formatTid={formatTid}
+        voteColors={voteColors}
+      />
+    )
+  }
+
+  if (route_type === "collectiveStatements") {
+    console.log("RENDERING: CollectiveStatementsReport");
+    return (
+      <CollectiveStatementsReport
+        conversation={conversation}
+        report_id={report_id}
+        math={math}
+        comments={comments}
+        ptptCount={ptptCount}
         formatTid={formatTid}
         voteColors={voteColors}
       />

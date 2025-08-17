@@ -80,6 +80,11 @@ Always use the commands above to determine the most substantial conversation whe
   - LLM API keys (Anthropic, OpenAI, etc.) are available in the parent `.env` file
   - Default Ollama model: `llama3.1:8b` (configurable via `OLLAMA_MODEL`)
 
+- **Sentence Transformer Configuration**:
+  - Default embedding model: `all-MiniLM-L6-v2` (configurable via `SENTENCE_TRANSFORMER_MODEL`)
+  - For multilingual support, set `SENTENCE_TRANSFORMER_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
+  - Both models produce 384-dimensional embeddings
+
 ## IMPORTANT: Finding All Logs
 
 **CRITICAL NOTE**: The FULL system logs are stored in the DynamoDB JobQueue table's job results! When debugging issues:
@@ -210,6 +215,7 @@ Delphi now includes a distributed job queue system built on DynamoDB:
 - `Delphi_CommentClustersLLMTopicNames` - LLM-generated topic names (formerly `LLMTopicNames`)
 - `Delphi_NarrativeReports` - Generated reports (formerly `report_narrative_store`)
 - `Delphi_JobQueue` - Job queue (formerly `DelphiJobQueue`)
+- `Delphi_CollectiveStatement` - Collective statements generated for topics
 
 > **Note:** All table names now use the `Delphi_` prefix for consistency.
 > For complete documentation on the table renaming, see `/Users/colinmegill/polis/delphi/docs/DATABASE_NAMING_PROPOSAL.md`
@@ -322,7 +328,7 @@ When running Delphi in an autoscaling environment, the system automatically conf
 | small (t3.large)    | Cost-efficient processing | 3              | 2g            | 8g               | 2              |
 | large (c6g.4xlarge) | High-performance ARM      | 8              | 8g            | 32g              | 8              |
 
-These settings are automatically applied based on the `/tmp/instance_size.txt` file created during instance initialization.
+These settings are automatically applied based on the `/etc/app-info/instance_size.txt` file created during instance initialization.
 
 ### Manual Configuration
 

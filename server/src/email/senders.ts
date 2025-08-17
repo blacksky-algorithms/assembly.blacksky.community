@@ -13,8 +13,6 @@ import nodemailer from "nodemailer";
 import Config from "../config";
 import logger from "../utils/logger";
 
-// https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-region.html
-// v2 docs, since we use v2 in our package.json: "aws:sdk": "2.78.0"
 AWS.config.update({ region: Config.awsRegion });
 
 function sendTextEmailWithBackup(
@@ -34,7 +32,6 @@ function sendTextEmailWithBackup(
 }
 
 function isDocker() {
-  // See: https://stackoverflow.com/a/25518345/504018
   return fs.existsSync("/.dockerenv");
 }
 
@@ -44,7 +41,6 @@ function getMailOptions(transportType: any) {
   switch (transportType) {
     case "maildev":
       return {
-        // Allows running outside docker, connecting to exposed port of maildev container.
         host: isDocker() ? "maildev" : "localhost",
         port: 1025,
         ignoreTLS: true,
@@ -52,9 +48,6 @@ function getMailOptions(transportType: any) {
     case "mailgun":
       mailgunAuth = {
         auth: {
-          // This forces fake credentials if envvars unset, so error is caught
-          // in auth and failover works without crashing server process.
-          // TODO: Suppress error thrown by mailgun library when unset.
           api_key: Config.mailgunApiKey || "unset-value",
           domain: Config.mailgunDomain || "unset-value",
         },
@@ -62,12 +55,12 @@ function getMailOptions(transportType: any) {
       return mg(mailgunAuth);
     case "aws-ses":
       return {
-        // reads AWS_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from process.env
-        // reads AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from process.env
         SES: new AWS.SES({ apiVersion: "2010-12-01" }),
       };
     default:
-      return {};
+      throw new Error(
+        `Unknown or undefined email transport type: ${transportType}`
+      );
   }
 }
 
@@ -78,41 +71,76 @@ function sendTextEmail(
   text: any,
   transportTypes = Config.emailTransportTypes,
   priority = 1
-) {
-  // Exit if empty string passed.
-  if (!transportTypes) {
-    return;
+): Promise<any> {
+  if (!transportTypes || transportTypes.length === 0) {
+    // Base case for recursion: If all transports have been tried and failed,
+    // create and throw a final, definitive error.
+    const finalError = new Error(
+      `All email transports failed for recipient: ${recipient}`
+    );
+    (finalError as any).code = "E_ALL_TRANSPORTS_FAILED";
+    return Promise.reject(finalError);
   }
 
   const transportTypesArray = transportTypes.split(",");
-  // Shift first index and clone to rename.
   const thisTransportType = transportTypesArray.shift();
   const nextTransportTypes = [...transportTypesArray];
-  const mailOptions = getMailOptions(thisTransportType);
-  const transporter = nodemailer.createTransport(mailOptions);
 
-  let promise: any = transporter
-    .sendMail({ from: sender, to: recipient, subject: subject, text: text })
-    .catch(function (err: any) {
-      logger.error(
-        "polis_err_email_sender_failed_transport_priority_" +
-          priority.toString(),
-        err
-      );
-      logger.error(
-        `Unable to send email via priority ${priority.toString()} transport '${thisTransportType}' to: ${recipient}`,
-        err
-      );
-      return sendTextEmail(
-        sender,
-        recipient,
-        subject,
-        text,
-        nextTransportTypes.join(","),
-        priority + 1
-      );
-    });
-  return promise;
+  try {
+    const mailOptions = getMailOptions(thisTransportType);
+    const transporter = nodemailer.createTransport(mailOptions);
+
+    return transporter
+      .sendMail({ from: sender, to: recipient, subject: subject, text: text })
+      .catch(function (originalError: any) {
+        const errorContext = {
+          message: `Email transport failed at priority ${priority}.`,
+          details: `Transport type '${thisTransportType}' failed for recipient '${recipient}'. Attempting failover.`,
+          priority,
+          transport: thisTransportType,
+          recipient,
+          timestamp: new Date().toISOString(),
+          cause: {
+            name: originalError.name,
+            message: originalError.message,
+            stack: originalError.stack,
+            code: originalError.code,
+          },
+        };
+
+        logger.error("polis_err_email_transport_failure", errorContext);
+
+        return sendTextEmail(
+          sender,
+          recipient,
+          subject,
+          text,
+          nextTransportTypes.join(","),
+          priority + 1
+        );
+      });
+  } catch (initializationError: any) {
+    const errorContext = {
+      message: `Failed to initialize email transporter at priority ${priority}.`,
+      transport: thisTransportType,
+      timestamp: new Date().toISOString(),
+      cause: {
+        name: initializationError.name,
+        message: initializationError.message,
+        stack: initializationError.stack,
+      },
+    };
+    logger.error("polis_err_email_init_failure", errorContext);
+
+    return sendTextEmail(
+      sender,
+      recipient,
+      subject,
+      text,
+      nextTransportTypes.join(","),
+      priority + 1
+    );
+  }
 }
 
 function sendMultipleTextEmails(
@@ -125,8 +153,18 @@ function sendMultipleTextEmails(
   return Promise.all(
     recipientArray.map(function (email: string) {
       const promise = sendTextEmail(sender, email, subject, text);
-      promise.catch(function (err: any) {
-        logger.error("polis_err_failed_to_email_for_user", { email, err });
+      promise.catch(function (finalError: any) {
+        logger.error("polis_err_failed_to_email_user_definitively", {
+          message: `Could not send email to user '${email}' after trying all available transports.`,
+          recipient: email,
+          timestamp: new Date().toISOString(),
+          finalError: {
+            name: finalError.name,
+            message: finalError.message,
+            stack: finalError.stack,
+            code: finalError.code,
+          },
+        });
       });
       return promise;
     })
@@ -142,7 +180,15 @@ function emailTeam(subject: string, body: string) {
     subject,
     body
   ).catch(function (err: any) {
-    logger.error("polis_err_failed_to_email_team", err);
+    logger.error("polis_err_uncaught_in_email_team", {
+      message: "An unexpected error occurred in the emailTeam function.",
+      timestamp: new Date().toISOString(),
+      cause: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+      },
+    });
   });
 }
 

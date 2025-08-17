@@ -7,34 +7,35 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: "./src/index.js",
   module: {
     rules: [
       {
         test: /\.css$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+        use: [MiniCssExtractPlugin.loader, "css-loader"],
       },
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         use: {
-          loader: 'babel-loader',
+          loader: "babel-loader",
           options: {
-            presets: ['@babel/preset-env', '@babel/preset-react']
-          }
-        }
+            presets: ["@babel/preset-env", "@babel/preset-react"],
+          },
+        },
       },
     ],
   },
+  resolve: {
+    extensions: [".js", ".jsx"],
+  },
   plugins: [
     new CopyWebpackPlugin({
-      patterns: [
-        { from: 'public/favicon.ico', to: 'favicon.ico' },
-      ],
+      patterns: [{ from: "public/favicon.ico", to: "favicon.ico" }],
     }),
     new HtmlWebpackPlugin({
-      template: 'public/index.html',
-      filename: 'index_report.html',
+      template: "public/index.html",
+      filename: "index_report.html",
     }),
     new webpack.DefinePlugin({
       'process.env.AUTH_AUDIENCE': JSON.stringify(process.env.AUTH_AUDIENCE),
@@ -43,6 +44,6 @@ module.exports = {
     }),
   ],
   externals: {
-    d3: 'd3' 
-  }
+    d3: "d3",
+  },
 };

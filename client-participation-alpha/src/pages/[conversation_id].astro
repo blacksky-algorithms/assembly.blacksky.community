@@ -1,0 +1,148 @@
+---
+import Layout from '../pages/layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Survey from '../components/Survey.jsx';
+import SurveyForm from '../components/SurveyForm.jsx'; 
+import TopicAgenda from '../components/topicAgenda/TopicAgenda.jsx';
+import { getTranslations } from '../strings/strings.js';
+import PolisNet from '../lib/net';
+
+const { conversation_id } = Astro.params;
+
+// Validate conversation_id - reject common invalid requests
+if (!conversation_id || 
+    conversation_id === 'favicon.ico' || 
+    conversation_id === 'robots.txt' ||
+    conversation_id === 'sitemap.xml' ||
+    conversation_id.includes('.') || // Reject any ID with file extensions
+    conversation_id.length < 3) { // Reject very short IDs
+  return Astro.redirect('/404');
+}
+
+let initialData;
+let fetchError = null;
+
+try {
+  const apiParams = new URLSearchParams();
+  if (conversation_id) {
+    apiParams.append('conversation_id', conversation_id);
+  }
+
+  const xid = Astro.url.searchParams.get('xid');
+  const x_name = Astro.url.searchParams.get('x_name');
+  const x_profile_image_url = Astro.url.searchParams.get('x_profile_image_url');
+
+
+  if (xid) {
+    apiParams.append('xid', xid);
+  }
+  if (x_name) {
+    apiParams.append('x_name', x_name);
+  }
+  if (x_profile_image_url) {
+    apiParams.append('x_profile_image_url', x_profile_image_url);
+  }
+
+
+  initialData = await PolisNet.polisGet('/participationInit', { conversation_id, includePCA: false });
+  // Note: JWT token handling will be done client-side since this is SSR
+  // The handleJwtFromResponse function will be called when the page hydrates
+} catch (error: unknown) {
+  console.error("Failed to fetch conversation data:", error);
+  
+  // Type-safe error handling
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorCause = error instanceof Error ? error.cause : undefined;
+  const errorCode = errorCause && typeof errorCause === 'object' && 'code' in errorCause 
+    ? String(errorCause.code) 
+    : undefined;
+  
+  console.error("[DEBUG] Error details:", {
+    message: errorMessage,
+    cause: errorCause,
+    code: errorCode,
+    stack: error instanceof Error ? error.stack : undefined
+  });
+
+  fetchError = `Could not load this conversation. Error: ${errorMessage}. Please check the ID and try again.`;
+}
+
+const s = await getTranslations();
+
+let surveyDetails, firstStatement, isConversationActive;
+if (initialData) {
+  surveyDetails = {
+    title: initialData.conversation.topic,
+    description: initialData.conversation.description,
+  };
+  
+  firstStatement = {
+    tid: initialData.nextComment?.tid,
+    txt: initialData.nextComment?.txt,
+    remaining: initialData.nextComment?.remaining,
+  };
+
+  isConversationActive = initialData.conversation.is_active;
+}
+
+const hideHeader = Astro.url.searchParams.get('hide_header');
+---
+<Layout title={surveyDetails?.title ?? 'Loading Conversation...'}>
+  {/* Handle JWT token from initial data on client side */}
+  <script define:vars={{ initialData }}>
+    if (initialData && initialData.auth && initialData.auth.token) {
+      // Import and use the centralized JWT handler
+      import('../lib/auth').then(({ setJwtToken }) => {
+        setJwtToken(initialData.auth.token);
+      });
+    }
+  </script>
+  
+  <div class="container">
+    {hideHeader ? null : <Header />}
+
+    {fetchError ? (
+      <div class="error-message">
+        <h2>Oops!</h2>
+        <p>{fetchError}</p>
+      </div>
+    ) : initialData ? (
+      <>
+        <h1>
+          {surveyDetails?.title}
+          {!isConversationActive && <span class="closed-badge">closed</span>}
+        </h1>
+        <p class="description" set:html={surveyDetails?.description}></p>
+
+        {isConversationActive ? (
+          <>
+            <TopicAgenda 
+              client:only="react"
+              conversation_id={conversation_id}
+            />
+            <p class="conversation-intro" set:html={s.participantHelpWelcomeText}></p>
+            <Survey 
+              client:load 
+              initialStatement={firstStatement}
+              conversation_id={initialData.conversation.conversation_id}
+              s={s} 
+            />
+            <SurveyForm client:load s={s} conversation_id={conversation_id} />
+          </>
+        ) : (
+          <div class="footer-spacer"></div>
+        )}
+      </>
+    ) : (
+      <p>Loading...</p>
+    )}
+
+    <div style="margin-top: 3rem;">
+      <div class="logo">p</div>
+      <div class="footer-links">
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">{s.privacy}</a>
+        <a href="/tos" target="_blank" rel="noopener noreferrer">{s.TOS}</a>
+      </div>
+    </div>
+  </div>
+</Layout>

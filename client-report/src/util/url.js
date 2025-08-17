@@ -25,17 +25,28 @@ const hostname = self.location.hostname;
 const port = self.location.port;
 
 const getDomainPrefix = () => {
+  let prefix;
+
   if (hostname === 'localhost') {
-    if (serviceUrl) return `${serviceUrl}/`;
-    if (port === '' || port === '80') return 'http://localhost/';
-    return 'http://localhost:5000/';
+    if (serviceUrl) {
+      prefix = serviceUrl;
+    } else if (port === '' || port === '80') {
+      prefix = 'http://localhost';
+    } else {
+      prefix = 'http://localhost:5000';
+    }
+  } else if (hostname.includes('assembly.blacksky.community')) {
+    prefix = `https://${hostname}`;
+  } else if (serviceUrl) {
+    prefix = serviceUrl;
+  } else {
+    prefix = self.origin;
   }
 
-  if (hostname.includes('assembly.blacksky.community')) return `https://${hostname}/`;
+  // Ensure we have exactly one trailing slash
+  prefix = prefix.replace(/\/+$/, '') + '/';
 
-  if (serviceUrl) return `${serviceUrl}/`;
-
-  return `${self.origin}/`;
+  return prefix;
 };
 
 const urlPrefix = getDomainPrefix();

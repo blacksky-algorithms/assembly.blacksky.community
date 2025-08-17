@@ -19,6 +19,7 @@ def show_usage():
     print("  --zid=CONVERSATION_ID     The Polis conversation ID to process")
     print()
     print("Optional arguments:")
+    print("  --rid=REPORT_ID           (Optional) The report ID for full narrative cleanup")
     print("  --verbose                 Show detailed logs")
     print("  --force                   Force reprocessing even if data exists")
     print("  --validate                Run extra validation checks")
@@ -27,6 +28,7 @@ def show_usage():
 def main():
     parser = argparse.ArgumentParser(description="Process a Polis conversation with the Delphi analytics pipeline.", add_help=False)
     parser.add_argument("--zid", required=True, help="The Polis conversation ID to process")
+    parser.add_argument("--rid", required=False, help="The report ID, if available, for full narrative cleanup.")
     parser.add_argument("--verbose", action="store_true", help="Show detailed logs")
     parser.add_argument("--force", action="store_true", help="Force reprocessing even if data exists")
     parser.add_argument("--validate", action="store_true", help="Run extra validation checks")
@@ -39,11 +41,29 @@ def main():
         sys.exit(0)
 
     zid = args.zid
+    rid = args.rid
     verbose_arg = "--verbose" if args.verbose else ""
     force_arg = "--force" if args.force else ""
     # validate_arg is not used in the python script execution steps, but kept for parity with bash
     # validate_arg = "--validate" if args.validate else ""
 
+    # --- Reset all data before processing ---
+    print(f"{YELLOW}Resetting all existing data for conversation {zid} before processing...{NC}")
+    reset_command = [
+        "python",
+        "umap_narrative/reset_conversation.py",
+        f"--zid={zid}",
+    ]
+    # If a report ID is provided, pass it to the reset script for full cleanup
+    if rid:
+        reset_command.append(f"--rid={rid}")
+        print(f"{YELLOW}Using report ID {rid} for full narrative report cleanup.{NC}")
+    
+    reset_process = subprocess.run(reset_command)
+    if reset_process.returncode != 0:
+        print(f"{RED}Data reset failed with exit code {reset_process.returncode}. Aborting pipeline.{NC}")
+        sys.exit(reset_process.returncode)
+    print(f"{GREEN}Data reset complete.{NC}")
 
     print(f"{GREEN}Processing conversation {zid}...{NC}")
 
@@ -58,8 +78,6 @@ def main():
     os.environ["PYTHONPATH"] = f"/app:{os.environ.get('PYTHONPATH', '')}"
     os.environ["OLLAMA_HOST"] = os.environ.get("OLLAMA_HOST", "http://ollama:11434")
     # OLLAMA_MODEL is already set and checked
-    os.environ["DYNAMODB_ENDPOINT"] = os.environ.get("DYNAMODB_ENDPOINT", None)
-
     max_votes = os.environ.get("MAX_VOTES")
     max_votes_arg = f"--max-votes={max_votes}" if max_votes else ""
     if max_votes:
@@ -120,6 +138,22 @@ def main():
 
     if extremity_exit_code != 0:
         print(f"{RED}Warning: Extremity calculation failed with exit code {extremity_exit_code}{NC}")
+        print("Continuing with priority calculation...")
+
+    # Calculate comment priorities using group-based extremity
+    print(f"{GREEN}Calculating comment priorities with group-based extremity...{NC}")
+    priority_command = [
+        "python", "/app/umap_narrative/502_calculate_priorities.py",
+        f"--conversation_id={zid}",
+    ]
+    if verbose_arg:
+        priority_command.append(verbose_arg)
+    
+    priority_process = subprocess.run(priority_command)
+    priority_exit_code = priority_process.returncode
+
+    if priority_exit_code != 0:
+        print(f"{RED}Warning: Priority calculation failed with exit code {priority_exit_code}{NC}")
         print("Continuing with visualization...")
 
     if pipeline_exit_code == 0:
@@ -138,9 +172,16 @@ def main():
             raw_endpoint = os.environ.get('DYNAMODB_ENDPOINT')
             endpoint_url = raw_endpoint if raw_endpoint and raw_endpoint.strip() else None
             
-            dynamodb = boto3.resource('dynamodb', 
-                                     endpoint_url=endpoint_url, 
-                                     region_name='us-east-1')
+            # Using dummy credentials for local, IAM role for AWS
+            if endpoint_url:
+                dynamodb = boto3.resource('dynamodb', 
+                                         endpoint_url=endpoint_url, 
+                                         region_name='us-east-1',
+                                         aws_access_key_id='dummy',
+                                         aws_secret_access_key='dummy')
+            else:
+                dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
 
             table = dynamodb.Table('Delphi_CommentHierarchicalClusterAssignments')
             
@@ -223,4 +264,4 @@ def main():
     sys.exit(exit_code)
 
 if __name__ == "__main__":
-    main() 
+    main()

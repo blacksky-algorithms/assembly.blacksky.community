@@ -34,7 +34,7 @@ jobs:
         mkcert -cert-file localhost.pem -key-file localhost-key.pem \
           localhost 127.0.0.1 ::1 oidc-simulator host.docker.internal
         
-        # Copy mkcert root CA to the certs directory for Docker containers
+        # Copy mkcert root CA for other containers
         cp "$(mkcert -CAROOT)/rootCA.pem" ./rootCA.pem
         
         # List generated files for debugging
@@ -89,11 +89,14 @@ jobs:
       if: always()
       run: |
         # Show logs from critical services for debugging
+        echo "=== NGINX Proxy logs ==="
+        docker compose -f docker-compose.test.yml logs nginx-proxy || true
+
         echo "=== OIDC Simulator logs ==="
-        docker compose -f docker-compose.test.yml logs oidc-simulator | tail -100
+        docker compose -f docker-compose.test.yml logs oidc-simulator || true
         
         echo "=== Server logs ==="
-        docker compose -f docker-compose.test.yml logs server | tail -100
+        docker compose -f docker-compose.test.yml logs server || true
 
     - name: Run auth setup test
       run: |

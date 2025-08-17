@@ -5,6 +5,27 @@
 # Run with: `docker compose -f docker-compose.test.yml --env-file test.env up --build`.
 
 services:
+  client-participation-alpha:
+    build:
+      context: ./client-participation-alpha
+      dockerfile: Dockerfile
+      args:
+        - OIDC_CACHE_KEY_ID_TOKEN_SUFFIX=${OIDC_CACHE_KEY_ID_TOKEN_SUFFIX}
+        - OIDC_CACHE_KEY_PREFIX=${OIDC_CACHE_KEY_PREFIX}
+        - PUBLIC_SERVICE_URL=${PUBLIC_SERVICE_URL}
+    depends_on:
+      - "server"
+    environment:
+      - INTERNAL_SERVICE_URL=${INTERNAL_SERVICE_URL}
+      - PUBLIC_OIDC_CACHE_KEY_ID_TOKEN_SUFFIX=${OIDC_CACHE_KEY_ID_TOKEN_SUFFIX}
+      - PUBLIC_OIDC_CACHE_KEY_PREFIX=${OIDC_CACHE_KEY_PREFIX}
+      - PUBLIC_SERVICE_URL=${PUBLIC_SERVICE_URL}
+    networks:
+      - polis-test
+    ports:
+      - "4321:4321"
+    restart: unless-stopped
+
   server:
     environment:
       - DATABASE_SSL=false
@@ -35,7 +56,6 @@ services:
       - "host.docker.internal:host-gateway"
 
   math:
-    image: 050917022930.dkr.ecr.us-east-1.amazonaws.com/polis/math:latest
     build:
       context: ./math
     labels:
@@ -104,12 +124,29 @@ services:
     ports:
       - 5432:5432
     restart: unless-stopped
+    # PostgreSQL configuration for development/testing
+    command: >
+      postgres 
+      -c max_connections=${POSTGRES_MAX_CONNECTIONS:-300}
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c wal_buffers=16MB
+      -c checkpoint_completion_target=0.9
+      -c checkpoint_timeout=10min
+      -c log_connections=on
+      -c log_disconnections=on
+      -c autovacuum=on
+      -c autovacuum_max_workers=3
+      -c autovacuum_naptime=30s
 
   nginx-proxy:
     build:
       context: ./file-server
       dockerfile: nginx.Dockerfile
     depends_on:
+      - client-participation-alpha
       - server
     environment:
       - API_SERVER_PORT=5000
@@ -122,7 +159,6 @@ services:
       - 443:443
 
   file-server:
-    image: docker.io/compdem/polis-file-server:${TAG:-dev}
     build:
       context: ./
       dockerfile: file-server/Dockerfile
@@ -141,6 +177,20 @@ services:
       polis_tag: test
     networks:
       - polis-test
+
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8000:8000"
+    networks:
+      - polis-test
+    environment:
+      - JAVA_OPTS=-Xmx1G
+    user: root
+    labels:
+      polis_tag: test
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   polis-test:

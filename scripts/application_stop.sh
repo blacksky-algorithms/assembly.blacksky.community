@@ -12,7 +12,7 @@ echo "Executing ApplicationStop hook..."
 # Adjust this path if your deployment process places files elsewhere
 DEPLOY_DIR="/opt/polis/polis"
 # File indicating the role of this instance (created by UserData/AfterInstall)
-SERVICE_TYPE_FILE="/tmp/service_type.txt"
+SERVICE_TYPE_FILE="/etc/app-info/service_type.txt"
 
 # --- Determine Service Type ---
 if [ -f "$SERVICE_TYPE_FILE" ]; then
@@ -42,9 +42,9 @@ if [ -d "$DEPLOY_DIR" ]; then
   fi
 
   if [ "$SERVICE_TYPE" == "server" ]; then
-    echo "Stopping server-related services (server, nginx-proxy, file-server)..."
+    echo "Stopping server-related services (server, nginx-proxy, file-server, client-participation-alpha)..."
     # Stop services related to the 'server' type instance (as started in AfterInstall)
-    /usr/local/bin/docker-compose stop server nginx-proxy file-server || echo "Warning: Failed to stop server component(s), might already be stopped."
+    /usr/local/bin/docker-compose stop server nginx-proxy file-server client-participation-alpha || echo "Warning: Failed to stop server component(s), might already be stopped."
     # Optional: Use 'down' if you want to remove networks etc. during stop, but 'stop' is usually sufficient here.
     # /usr/local/bin/docker-compose down --remove-orphans server nginx-proxy file-server || echo "Warning..."
 

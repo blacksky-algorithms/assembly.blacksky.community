@@ -11,6 +11,7 @@ import ConversationStats from './stats'
 import { useAuth } from 'react-oidc-context'
 
 import ModerateComments from './comment-moderation/'
+import TopicModeration from './topic-moderation/'
 
 // import DataExport from "./data-export";
 import ShareAndEmbed from './share-and-embed'
@@ -59,6 +60,16 @@ const ConversationAdminContainer = () => {
         <Box sx={{ mb: [3] }}>
           <Link sx={{ variant: 'links.nav' }} to={`/`}>
             All
+          </Link>
+        </Box>
+        <Box sx={{ mb: [3] }}>
+          <Link
+            sx={{
+              variant: url === 'topics' ? 'links.activeNav' : 'links.nav'
+            }}
+            data-test-id="moderate-topics"
+            to={`${baseUrl}/topics`}>
+            Topic Mod
           </Link>
         </Box>
         <Box sx={{ mb: [3] }}>
@@ -111,6 +122,12 @@ const ConversationAdminContainer = () => {
           <Route path="reports/*" element={<Reports />} />
           <Route path="comments/*" element={<ModerateComments />} />
           <Route path="stats" element={<ConversationStats />} />
+          <Route
+            path={`${baseUrl}/topics`}
+            render={(props) => (
+              <TopicModeration {...props} conversation_id={params.conversation_id} />
+            )}
+          />
           {/* <Route path="export" element={<DataExport />} /> */}
         </Routes>
       </Box>

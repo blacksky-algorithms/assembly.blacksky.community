@@ -59,9 +59,9 @@ def detect_instance_type():
         return instance_type
         
     # Then check instance_size.txt file (created by UserData script)
-    if os.path.exists('/tmp/instance_size.txt'):
+    if os.path.exists('/etc/app-info/instance_size.txt'):
         try:
-            with open('/tmp/instance_size.txt', 'r') as f:
+            with open('/etc/app-info/instance_size.txt', 'r') as f:
                 instance_type = f.read().strip()
                 if instance_type in INSTANCE_CONFIGS:
                     logger.info(f"Using instance type from file: {instance_type}")
