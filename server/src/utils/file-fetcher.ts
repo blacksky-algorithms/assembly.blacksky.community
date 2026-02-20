@@ -84,7 +84,7 @@ function makeFileFetcher(
       '    <meta property="twitter:image" content="' + image + '" />\n';
 
     x = x.pipe(
-      replaceStream("<!-- REPLACE_THIS_WITH_FB_META_TAGS -->", fbMetaTagsString)
+      replaceStream('<meta name="REPLACE_THIS_WITH_FB_META_TAGS" content="placeholder">', fbMetaTagsString)
     );
 
     res.set(headers);
