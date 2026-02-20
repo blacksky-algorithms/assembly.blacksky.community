@@ -112,6 +112,7 @@ export default {
   isTesting: isTrue(process.env.TESTING),
   openaiApiKey: process.env.OPENAI_API_KEY || null,
   polisFromAddress: process.env.POLIS_FROM_ADDRESS as string,
+  smtpUrl: process.env.SMTP_URL || null,
   polisJwtIssuer: process.env.POLIS_JWT_ISSUER || "https://pol.is/",
   polisJwtAudience: process.env.POLIS_JWT_AUDIENCE || "participants",
   readOnlyDatabaseURL:

@@ -53,6 +53,13 @@ function getMailOptions(transportType: any) {
         },
       };
       return mg(mailgunAuth);
+    case "smtp":
+      if (!Config.smtpUrl) {
+        throw new Error("SMTP_URL environment variable is required for smtp transport");
+      }
+      return {
+        url: Config.smtpUrl,
+      };
     case "aws-ses":
       return {
         SES: new AWS.SES({ apiVersion: "2010-12-01" }),
