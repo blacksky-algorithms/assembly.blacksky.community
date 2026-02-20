@@ -73,13 +73,13 @@ function buildTitleOverlay(topic: string): string {
 
   // "People's Assembly" heading below the logo area
   const assemblyFontSize = 56;
-  const assemblyY = 300;
+  const assemblyY = 370;
 
   // Separator line between heading and topic
-  const separatorY = assemblyY + 40;
+  const separatorY = assemblyY + 35;
 
   // Topic title lines below the separator
-  const firstLineY = separatorY + 30 + topicFontSize;
+  const firstLineY = separatorY + 25 + topicFontSize;
 
   const topicElements = lines
     .map((line, i) => {
