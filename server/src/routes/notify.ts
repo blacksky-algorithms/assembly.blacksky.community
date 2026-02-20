@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { encode } from "html-entities";
 import { Promise as BluebirdPromise } from "bluebird";
 
-import { emailTeam } from "../email/senders";
+import { emailTeam, sendTextEmail } from "../email/senders";
 import { failJson } from "../utils/fail";
 import { getConversationInfo } from "../conversation";
 import { getNumberOfCommentsRemaining } from "../comment";
@@ -190,7 +190,10 @@ function doNotificationsForZid(zid: number, timeOfLastEvent: any) {
         const conv = a[1];
         const conversation_id = a[2];
 
-        const url = conv.parent_url || "https://pol.is/" + conversation_id;
+        const serverUrl = Config.domainOverride
+          ? `https://${Config.domainOverride}`
+          : Config.getServerUrl();
+        const url = conv.parent_url || serverUrl + "/" + conversation_id;
 
         const pid_to_ptpt = {};
         candidates.forEach((c: { pid: number }) => {
@@ -283,17 +286,35 @@ function doNotificationsForZid(zid: number, timeOfLastEvent: any) {
                 needNotification,
                 (item: { pid: number; remaining: any }) => {
                   const uid = pid_to_ptpt[item.pid].uid;
+                  const recipientEmail = uidToEmail[uid];
+                  if (!recipientEmail) {
+                    logger.warn("polis_notification_skip_no_email", {
+                      uid,
+                      pid: item.pid,
+                      zid,
+                    });
+                    return Promise.resolve();
+                  }
                   return sendNotificationEmail(
                     uid,
                     url,
                     conversation_id,
-                    uidToEmail[uid]
-                  ).then(() => {
-                    return pg.queryP(
-                      "update participants set last_notified = now_as_millis(), nsli = nsli + 1 where uid = ($1) and zid = ($2);",
-                      [uid, zid]
-                    );
-                  });
+                    recipientEmail
+                  )
+                    .then(() => {
+                      return pg.queryP(
+                        "update participants set last_notified = now_as_millis(), nsli = nsli + 1 where uid = ($1) and zid = ($2);",
+                        [uid, zid]
+                      );
+                    })
+                    .catch((err: any) => {
+                      logger.error("polis_err_notification_send", {
+                        uid,
+                        pid: item.pid,
+                        email: recipientEmail,
+                        message: err.message,
+                      });
+                    });
                 }
               );
             });
@@ -307,9 +328,16 @@ function doNotificationsForZid(zid: number, timeOfLastEvent: any) {
 
 function doNotificationLoop() {
   logger.debug("doNotificationLoop");
-  doNotificationBatch().then(() => {
-    setTimeout(doNotificationLoop, 10000);
-  });
+  doNotificationBatch()
+    .catch((err: any) => {
+      logger.error("polis_err_notification_batch", {
+        message: err.message,
+        stack: err.stack,
+      });
+    })
+    .then(() => {
+      setTimeout(doNotificationLoop, 10000);
+    });
 }
 
 function sendNotificationEmail(
@@ -332,6 +360,11 @@ function sendNotificationEmail(
     "If for some reason the above link does not work, please reply directly to this email with the message 'Unsubscribe' and we will remove you within 24 hours.";
   body += "\n";
   body += "Thanks for your participation";
+  // Use subscribe_email directly when available (OIDC users may not have
+  // email in the users table, so sendEmailByUid would fail for them).
+  if (email) {
+    return sendTextEmail(Config.polisFromAddress, email, subject, body);
+  }
   return sendEmailByUid(uid, subject, body);
 }
 
