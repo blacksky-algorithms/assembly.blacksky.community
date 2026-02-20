@@ -46,7 +46,13 @@ function makeFileFetcher(
       preloadData?.conversation?.topic || defaultTitle;
     const description =
       preloadData?.conversation?.description || defaultDescription;
-    const image = defaultImage;
+    const image =
+      preloadData?.conversation?.conversation_id && req?.headers?.host
+        ? "https://" +
+          req.headers.host +
+          "/og-image/" +
+          preloadData.conversation.conversation_id
+        : defaultImage;
 
     let fbMetaTagsString = '<meta property="og:type" content="website">\n';
     fbMetaTagsString +=

@@ -18,6 +18,7 @@ import Config from "./src/config";
 import { makeFileFetcher } from "./src/utils/file-fetcher";
 import logger from "./src/utils/logger";
 import { fetchIndexForConversation } from "./src/conversation";
+import { handle_GET_ogImage } from "./src/routes/og-image";
 import { getPidForParticipant } from "./src/user";
 
 import {
@@ -1759,6 +1760,7 @@ helpersInitialized.then(
     app.get(/^\/pdf$/, makeRedirectorTo("/23mymwyhkn")); // pdf 2017
     app.get(/^\/nabi$/, makeRedirectorTo("/8ufpzc6fkm")); //
 
+    app.get("/og-image/:conversation_id", handle_GET_ogImage); // dynamic OG image
     app.get(/^\/[0-9][0-9A-Za-z]+(\/.*)?/, fetchIndexForConversation); // conversation view
     app.get(/^\/explore\/[0-9][0-9A-Za-z]+(\/.*)?/, fetchIndexForConversation); // power view
     app.get(/^\/share\/[0-9][0-9A-Za-z]+(\/.*)?/, fetchIndexForConversation); // share view
