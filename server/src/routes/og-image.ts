@@ -15,7 +15,7 @@ const imageCache = new LruCache<string, Buffer>({
   max: 200,
 });
 
-// Load base image at startup.
+// Load base image at startup (logo + "blacksky algorithms" only).
 // Assets are in src/assets/ relative to the project root (process.cwd()).
 const assetsDir = path.join(process.cwd(), "src", "assets");
 const baseImageBuffer = fs.readFileSync(
@@ -62,31 +62,37 @@ function escapeXml(str: string): string {
 }
 
 /**
- * Build an SVG overlay containing the topic title in Rubik Bold.
- * The Rubik font is installed system-wide via the Dockerfile,
- * so librsvg (used by sharp) can resolve it by name.
+ * Build an SVG overlay containing "People's Assembly" and the topic title,
+ * both rendered in Baste B. The Baste B font is installed system-wide via
+ * the Dockerfile, so librsvg (used by sharp) can resolve it by name.
  */
 function buildTitleOverlay(topic: string): string {
   const lines = wrapText(topic, 32);
-  const fontSize = lines.some((l) => l.length > 28) ? 42 : 48;
-  const lineHeight = fontSize * 1.3;
+  const topicFontSize = lines.some((l) => l.length > 28) ? 42 : 48;
+  const lineHeight = topicFontSize * 1.3;
 
-  // The base image has the logo ~top third, "People's Assembly" ending ~y=430.
-  // Place the separator line at y=440, then the topic title below it.
-  const separatorY = 445;
-  const firstLineY = separatorY + 30 + fontSize;
+  // "People's Assembly" heading below the logo area
+  const assemblyFontSize = 56;
+  const assemblyY = 300;
 
-  const textElements = lines
+  // Separator line between heading and topic
+  const separatorY = assemblyY + 40;
+
+  // Topic title lines below the separator
+  const firstLineY = separatorY + 30 + topicFontSize;
+
+  const topicElements = lines
     .map((line, i) => {
       const y = firstLineY + i * lineHeight;
-      return `<text x="${IMAGE_WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Baste B" font-weight="normal" font-size="${fontSize}" fill="#1a1a1a">${escapeXml(line)}</text>`;
+      return `<text x="${IMAGE_WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Baste B" font-weight="normal" font-size="${topicFontSize}" fill="#1a1a1a">${escapeXml(line)}</text>`;
     })
     .join("\n    ");
 
   return `<svg width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <rect width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" fill="none"/>
+  <text x="${IMAGE_WIDTH / 2}" y="${assemblyY}" text-anchor="middle" font-family="Baste B" font-weight="bold" font-size="${assemblyFontSize}" fill="#1a1a1a">People\u2019s Assembly</text>
   <rect x="80" y="${separatorY}" width="${IMAGE_WIDTH - 160}" height="2" fill="#d0d0d0" rx="1"/>
-    ${textElements}
+    ${topicElements}
 </svg>`;
 }
 
