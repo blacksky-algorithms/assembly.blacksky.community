@@ -36,18 +36,53 @@ function makeFileFetcher(
       );
     }
 
-    let fbMetaTagsString =
-      '<meta property="og:image" content="https://s3.amazonaws.com/pol.is/polis_logo.png" />\n';
-    if (preloadData && preloadData.conversation) {
+    const defaultTitle = "Blacksky People's Assembly";
+    const defaultDescription =
+      "Blacksky People\u2019s Assembly \u2013 a space for public deliberation and collective decision-making.";
+    const defaultImage =
+      "https://blacksky-cdn.nyc3.cdn.digitaloceanspaces.com/peoples-assembly.png";
+
+    const title =
+      preloadData?.conversation?.topic || defaultTitle;
+    const description =
+      preloadData?.conversation?.description || defaultDescription;
+    const image = defaultImage;
+
+    let fbMetaTagsString = '<meta property="og:type" content="website">\n';
+    fbMetaTagsString +=
+      '    <meta property="og:title" content="' + encode(title) + '" />\n';
+    fbMetaTagsString +=
+      '    <meta name="description" content="' + encode(description) + '">\n';
+    fbMetaTagsString +=
+      '    <meta property="og:description" content="' +
+      encode(description) +
+      '" />\n';
+    fbMetaTagsString +=
+      '    <meta property="og:image" content="' + image + '" />\n';
+    if (
+      preloadData?.conversation?.conversation_id &&
+      req?.headers?.host
+    ) {
       fbMetaTagsString +=
-        '    <meta property="og:title" content="' +
-        encode(preloadData.conversation.topic) +
-        '" />\n';
-      fbMetaTagsString +=
-        '    <meta property="og:description" content="' +
-        encode(preloadData.conversation.description) +
+        '    <meta property="og:url" content="https://' +
+        encode(req.headers.host) +
+        "/" +
+        encode(preloadData.conversation.conversation_id) +
         '" />\n';
     }
+    fbMetaTagsString +=
+      '    <meta name="twitter:card" content="summary_large_image">\n';
+    fbMetaTagsString +=
+      '    <meta property="twitter:title" content="' +
+      encode(title) +
+      '" />\n';
+    fbMetaTagsString +=
+      '    <meta property="twitter:description" content="' +
+      encode(description) +
+      '" />\n';
+    fbMetaTagsString +=
+      '    <meta property="twitter:image" content="' + image + '" />\n';
+
     x = x.pipe(
       replaceStream("<!-- REPLACE_THIS_WITH_FB_META_TAGS -->", fbMetaTagsString)
     );

@@ -250,6 +250,7 @@ export type ConversationType = {
   limit?: number;
   parent_url?: string;
   auth_opt_allow_3rdparty?: boolean;
+  conversation_id?: string;
 };
 
 export type ParticipantOption = {
