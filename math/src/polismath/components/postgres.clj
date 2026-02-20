@@ -16,10 +16,12 @@
 (defn create-hikari-datasource
   "Create a HikariCP datasource for better connection pooling"
   [db-uri pool-config]
-  (let [[_ user password host port db] (re-matches #"postgres://(?:(.+):(.*)@)?([^:]+)(?::(\d+))?/(.+)" db-uri)
+  (let [[_ user password host port db query-string] (re-matches #"postgres(?:ql)?://(?:(.+):(.*)@)?([^:/?]+)(?::(\d+))?/([^?]+)(?:\?(.*))?" db-uri)
         pool-size (get pool-config :pool-size 10)
+        jdbc-url (str "jdbc:postgresql://" host ":" (or port 5432) "/" db
+                      (when query-string (str "?" query-string)))
         config (doto (HikariConfig.)
-                 (.setJdbcUrl (str "jdbc:postgresql://" host ":" (or port 5432) "/" db))
+                 (.setJdbcUrl jdbc-url)
                  (.setUsername user)
                  (.setPassword password)
                  (.setDriverClassName "org.postgresql.Driver")
