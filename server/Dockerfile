@@ -48,7 +48,8 @@ FROM base as prod
 ENV NODE_ENV ${NODE_ENV:-production}
 
 # Install OpenSSL and CA Certificates (CRITICAL for production)
-RUN apk add --no-cache openssl ca-certificates
+# fontconfig is needed for sharp SVG text rendering (OG image generation)
+RUN apk add --no-cache openssl ca-certificates fontconfig
 
 RUN npm ci --production=false
 
@@ -56,6 +57,11 @@ RUN npm ci --production=false
 RUN apk del .build
 
 COPY . .
+
+# Install Rubik font for OG image SVG text rendering
+RUN mkdir -p /usr/share/fonts/truetype && \
+  cp src/assets/Rubik-Variable.ttf /usr/share/fonts/truetype/ && \
+  fc-cache -f
 
 RUN npm run build
 

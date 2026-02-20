@@ -15,21 +15,18 @@ const imageCache = new LruCache<string, Buffer>({
   max: 200,
 });
 
-// Load base image and font at startup.
+// Load base image at startup.
 // Assets are in src/assets/ relative to the project root (process.cwd()).
-// __dirname points to dist/src/routes/ after compilation, so we use cwd.
 const assetsDir = path.join(process.cwd(), "src", "assets");
-const baseImageBuffer = fs.readFileSync(path.join(assetsDir, "blacksky-logo.png"));
-const rubikFontBase64 = fs.readFileSync(
-  path.join(assetsDir, "Rubik-Variable.ttf")
-).toString("base64");
+const baseImageBuffer = fs.readFileSync(
+  path.join(assetsDir, "blacksky-logo.png")
+);
 
 const DEFAULT_IMAGE_URL =
   "https://blacksky-cdn.nyc3.cdn.digitaloceanspaces.com/peoples-assembly.png";
 
 /**
  * Word-wrap text into lines that fit within a max character width.
- * Returns an array of lines.
  */
 function wrapText(text: string, maxCharsPerLine: number): string[] {
   const words = text.split(/\s+/);
@@ -66,17 +63,16 @@ function escapeXml(str: string): string {
 
 /**
  * Build an SVG overlay containing the topic title in Rubik Bold.
- * This gets composited on top of the base image.
+ * The Rubik font is installed system-wide via the Dockerfile,
+ * so librsvg (used by sharp) can resolve it by name.
  */
 function buildTitleOverlay(topic: string): string {
   const lines = wrapText(topic, 32);
   const fontSize = lines.some((l) => l.length > 28) ? 42 : 48;
   const lineHeight = fontSize * 1.3;
 
-  // Position the title block in the lower portion of the image,
-  // below the logo and "People's Assembly" text.
-  // The base image has logo ~top 1/3, "People's Assembly" ~middle.
-  // We'll place the topic title starting around y=420, centered.
+  // The base image has the logo in the top third, "People's Assembly" in the middle.
+  // Place the topic title in the lower portion, above a bottom margin.
   const totalTextHeight = lines.length * lineHeight;
   const startY = IMAGE_HEIGHT - 80 - totalTextHeight;
 
@@ -88,15 +84,6 @@ function buildTitleOverlay(topic: string): string {
     .join("\n    ");
 
   return `<svg width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
-      @font-face {
-        font-family: 'Rubik';
-        font-weight: 100 900;
-        src: url('data:font/truetype;base64,${rubikFontBase64}') format('truetype');
-      }
-    </style>
-  </defs>
   <rect width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" fill="none"/>
   <rect x="80" y="${startY - fontSize - 10}" width="${IMAGE_WIDTH - 160}" height="2" fill="#d0d0d0" rx="1"/>
     ${textElements}
