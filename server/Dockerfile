@@ -58,8 +58,9 @@ RUN apk del .build
 
 COPY . .
 
-# Install Rubik font for OG image SVG text rendering
+# Install brand fonts for OG image SVG text rendering
 RUN mkdir -p /usr/share/fonts/truetype && \
+  cp src/assets/BasteB-Regular.otf /usr/share/fonts/truetype/ && \
   cp src/assets/Rubik-Variable.ttf /usr/share/fonts/truetype/ && \
   fc-cache -f
 

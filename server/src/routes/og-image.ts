@@ -71,21 +71,21 @@ function buildTitleOverlay(topic: string): string {
   const fontSize = lines.some((l) => l.length > 28) ? 42 : 48;
   const lineHeight = fontSize * 1.3;
 
-  // The base image has the logo in the top third, "People's Assembly" in the middle.
-  // Place the topic title in the lower portion, above a bottom margin.
-  const totalTextHeight = lines.length * lineHeight;
-  const startY = IMAGE_HEIGHT - 80 - totalTextHeight;
+  // The base image has the logo ~top third, "People's Assembly" ending ~y=430.
+  // Place the separator line at y=440, then the topic title below it.
+  const separatorY = 445;
+  const firstLineY = separatorY + 30 + fontSize;
 
   const textElements = lines
     .map((line, i) => {
-      const y = startY + i * lineHeight;
-      return `<text x="${IMAGE_WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Rubik" font-weight="700" font-size="${fontSize}" fill="#1a1a1a">${escapeXml(line)}</text>`;
+      const y = firstLineY + i * lineHeight;
+      return `<text x="${IMAGE_WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Baste B" font-weight="normal" font-size="${fontSize}" fill="#1a1a1a">${escapeXml(line)}</text>`;
     })
     .join("\n    ");
 
   return `<svg width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <rect width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" fill="none"/>
-  <rect x="80" y="${startY - fontSize - 10}" width="${IMAGE_WIDTH - 160}" height="2" fill="#d0d0d0" rx="1"/>
+  <rect x="80" y="${separatorY}" width="${IMAGE_WIDTH - 160}" height="2" fill="#d0d0d0" rx="1"/>
     ${textElements}
 </svg>`;
 }
