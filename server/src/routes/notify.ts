@@ -299,7 +299,8 @@ function doNotificationsForZid(zid: number, timeOfLastEvent: any) {
                     uid,
                     url,
                     conversation_id,
-                    recipientEmail
+                    recipientEmail,
+                    conv.topic
                   )
                     .then(() => {
                       return pg.queryP(
@@ -344,16 +345,17 @@ function sendNotificationEmail(
   uid?: any,
   url?: string,
   conversation_id?: string,
-  email?: any
+  email?: any,
+  topic?: string
 ) {
-  const subject =
-    "New statements to vote on (conversation " + conversation_id + ")"; // Not sure if putting the conversation_id is ideal, but we need some way to ensure that the notifications for each conversation appear in separte threads.
+  const topicLabel = topic || conversation_id;
+  const subject = "New statements to vote on ('" + topicLabel + "')";
   let body = "There are new statements available for you to vote on here:\n";
   body += "\n";
   body += url + "\n";
   body += "\n";
   body +=
-    "You're receiving this message because you're signed up to receive Polis notifications for this conversation. You can unsubscribe from these emails by clicking this link:\n";
+    "You're receiving this message because you're signed up to receive Blacksky People's Assembly notifications for this conversation. You can unsubscribe from these emails by clicking this link:\n";
   body += createNotificationsUnsubscribeUrl(conversation_id, email) + "\n";
   body += "\n";
   body +=
