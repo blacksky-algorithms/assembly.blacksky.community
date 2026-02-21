@@ -421,18 +421,18 @@ ${message}`;
   trySendingBackupEmailTest();
   function sendEinviteEmail(req: any, email: any, einvite: any) {
     const serverName = getServerNameWithProtocol(req);
-    const body = `Welcome to pol.is!
+    const body = `Welcome to Blacksky People's Assembly!
 
 Click this link to open your account:
 
 ${serverName}/welcome/${einvite}
 
-Thank you for using Polis`;
+Thank you for using Blacksky People's Assembly`;
 
     return sendTextEmail(
       polisFromAddress,
       email,
-      "Get Started with Polis",
+      "Get Started with Blacksky People's Assembly",
       body
     );
   }
@@ -623,7 +623,7 @@ Email verified! You can close this tab or hit the back button.
           "\n" +
           "With gratitude,\n" +
           "\n" +
-          "The team at pol.is";
+          "The Blacksky People's Assembly team";
 
         return sendTextEmail(
           polisFromAddress,
@@ -669,8 +669,8 @@ Email verified! You can close this tab or hit the back button.
     const serverUrl = Config.getServerUrl();
     const email = req.p.email;
     const subject =
-      "Polis data export for conversation pol.is/" + req.p.conversation_id;
-    const fromAddress = `Polis Team <${Config.adminEmailDataExport}>`;
+      "Data export for conversation " + req.p.conversation_id;
+    const fromAddress = Config.polisFromAddress || `Blacksky People's Assembly <${Config.adminEmailDataExport}>`;
     const body = `Greetings
 
 You created a data export for conversation ${serverUrl}/${req.p.conversation_id} that has just completed. You can download the results for this conversation at the following url:
@@ -679,7 +679,7 @@ ${serverUrl}/api/v3/dataExport/results?filename=${req.p.filename}&conversation_i
 
 Please let us know if you have any questions about the data.
 
-Thanks for using Polis!
+Thanks for using Blacksky People's Assembly!
 `;
 
     sendTextEmail(fromAddress, email, subject, body)

@@ -120,19 +120,19 @@ async function sendSuzinviteEmail(
 ): Promise<void> {
   const serverName = Config.getServerNameWithProtocol(req);
   const body = [
-    "Welcome to pol.is!",
+    "Welcome to Blacksky People's Assembly!",
     "",
     "Click this link to open your account:",
     "",
     `${serverName}/ot/${conversation_id}/${suzinvite}`,
     "",
-    "Thank you for using Polis",
+    "Thank you for using Blacksky People's Assembly",
   ].join("\n");
 
   await sendTextEmail(
     Config.polisFromAddress,
     email,
-    "Join the pol.is conversation!",
+    "Join the Blacksky People's Assembly conversation!",
     body
   );
 }

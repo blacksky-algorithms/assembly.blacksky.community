@@ -601,9 +601,11 @@ async function handle_GET_nextComment(
   }
 }
 
-// TODO: Use dynamic url domain
 function createProdModerationUrl(zinvite: string): string {
-  return "https://pol.is/m/" + zinvite;
+  const serverUrl = Config.domainOverride
+    ? `https://${Config.domainOverride}`
+    : Config.getServerUrl();
+  return serverUrl + "/m/" + zinvite;
 }
 
 function getNumberOfCommentsWithModerationStatus(
@@ -650,27 +652,28 @@ function sendCommentModerationEmail(
     body += " Statements are waiting for your review here: ";
   }
 
-  getZinvite(zid)
+  Promise.all([getZinvite(zid), getConversationInfo(zid)])
     .catch(function (err: any) {
       logger.error("polis_err_getting_zinvite", err);
-      return void 0;
+      return [void 0, {}];
     })
-    .then(function (zinvite: any) {
+    .then(function ([zinvite, conv]: any) {
       // NOTE: the counter goes in the email body so it doesn't create a new email thread (in Gmail, etc)
 
       body += createProdModerationUrl(zinvite);
 
-      body += "\n\nThank you for using Polis.";
+      body += "\n\nThank you for using Blacksky People's Assembly.";
 
       // NOTE: adding a changing element (date) at the end to prevent gmail from thinking the URL is a
       // signature, and hiding it. (since the URL doesn't change between emails, Gmail tries to be smart,
       // and hides it)
       // "Sent: " + Date.now() + "\n";
 
-      // NOTE: Adding zid to the subject to force the email client to create a new email thread.
+      const topicLabel = (conv && conv.topic) || zinvite;
+      // NOTE: Adding topic to the subject to force the email client to create a new email thread.
       return sendEmailByUid(
         uid,
-        `Waiting for review (conversation ${zinvite})`,
+        `Waiting for review ('${topicLabel}')`,
         body
       );
     })

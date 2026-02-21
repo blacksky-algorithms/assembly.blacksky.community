@@ -942,7 +942,7 @@ function handle_PUT_conversations(
                           "\n" +
                           "With gratitude,\n" +
                           "\n" +
-                          "The team at pol.is\n"
+                          "The Blacksky People's Assembly team\n"
                       ).catch(function (err: any) {
                         logger.error(
                           "polis_err_sending_conversation_created_email",
