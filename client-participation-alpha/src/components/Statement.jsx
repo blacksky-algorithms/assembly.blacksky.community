@@ -13,10 +13,21 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
   return (
     <div className="statement-card">
       <div className="statement-header">
-        <div className="anonymous-user">
-          <div className="avatar"></div>
-          <span>{s.anonPerson || 'Anonymous'} {s.x_wrote || 'wrote:'}</span>
-        </div>
+        {statement.author_name ? (
+          <div className="statement-author">
+            {statement.author_avatar ? (
+              <img src={statement.author_avatar} alt={statement.author_name} className="statement-author-avatar" />
+            ) : (
+              <div className="avatar"></div>
+            )}
+            <span>{statement.author_name} {s.x_wrote || 'wrote:'}</span>
+          </div>
+        ) : (
+          <div className="anonymous-user">
+            <div className="avatar"></div>
+            <span>{s.anonPerson || 'Anonymous'} {s.x_wrote || 'wrote:'}</span>
+          </div>
+        )}
       </div>
       <p className="statement-text">{statement.txt}</p>
 

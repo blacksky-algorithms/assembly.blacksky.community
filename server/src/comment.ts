@@ -6,6 +6,7 @@ import { GetCommentsParams, ConversationInfo } from "./d";
 import { getConversationInfo } from "./conversation";
 import { MPromise } from "./utils/metered";
 import Config from "./config";
+import logger from "./utils/logger";
 import pg from "./db/pg-query";
 import SQL from "./db/sql";
 import Utils from "./utils/common";
@@ -31,6 +32,10 @@ export type CommentRow = {
   mod?: number;
   active?: boolean;
   randomN?: number;
+  // Author identity from xids table
+  author_xid?: string;
+  author_name?: string;
+  author_avatar?: string;
 };
 
 export type CommentTranslationRow = {
@@ -98,9 +103,45 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
       });
       return rows;
     })
-    .then(function (comments: CommentRow[]): CommentRow[] {
-      comments.forEach(function (c: { uid?: any }) {
+    .then(async function (comments: CommentRow[]): Promise<CommentRow[]> {
+      // Batch-lookup author xid info for all comments
+      const pids = [...new Set(comments.map((c) => c.pid).filter((p) => p !== undefined))];
+      const authorMap: Record<number, { author_xid: string; author_name: string; author_avatar: string }> = {};
+
+      if (pids.length > 0) {
+        try {
+          const xidRows = await pg.queryP(
+            `SELECT p.pid, x.xid, x.x_name, x.x_profile_image_url
+             FROM participants p
+             LEFT JOIN xids x ON p.uid = x.uid
+               AND x.owner = (SELECT org_id FROM conversations WHERE zid = $1)
+             WHERE p.zid = $1 AND p.pid = ANY($2)`,
+            [o.zid, pids]
+          ) as any[];
+
+          for (const row of xidRows) {
+            if (row.xid) {
+              authorMap[row.pid] = {
+                author_xid: row.xid,
+                author_name: row.x_name || "",
+                author_avatar: row.x_profile_image_url || "",
+              };
+            }
+          }
+        } catch (err) {
+          // Non-fatal — fall back to anonymous display
+          logger.warn("Failed to fetch author xid info for comments", err);
+        }
+      }
+
+      comments.forEach(function (c: any) {
         delete c.uid;
+        const author = authorMap[c.pid];
+        if (author) {
+          c.author_xid = author.author_xid;
+          c.author_name = author.author_name;
+          c.author_avatar = author.author_avatar;
+        }
       });
       return comments;
     });
