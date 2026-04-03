@@ -5,7 +5,7 @@
   "redirect_uris": [
     "https://assembly.blacksky.community/auth/callback"
   ],
-  "scope": "atproto",
+  "scope": "atproto rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app%23bsky_appview",
   "token_endpoint_auth_method": "none",
   "response_types": [
     "code"
