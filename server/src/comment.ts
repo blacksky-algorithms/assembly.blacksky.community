@@ -285,6 +285,11 @@ function _getCommentsList(o: {
           );
         }
 
+        // Don't show participants their own comments
+        if (!_.isUndefined(o.not_voted_by_pid) && o.not_voted_by_pid >= 0) {
+          q = q.and(SQL.sql_comments.pid.notEquals(o.not_voted_by_pid));
+        }
+
         if (!_.isUndefined(o.withoutTids)) {
           q = q.and(SQL.sql_comments.tid.notIn(o.withoutTids));
         }
