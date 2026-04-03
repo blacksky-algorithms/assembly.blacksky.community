@@ -114,7 +114,7 @@ function addCorsHeader(
   // Determine if domain validation should be skipped.
   const isTestingMode = Config.nodeEnv === "test" || Config.isTesting;
   const isDevAndLocalhost =
-    Config.isDevMode && origin && origin.includes("localhost");
+    Config.isDevMode && origin && (origin.includes("localhost") || origin.includes("127.0.0.1"));
 
   const shouldSkipValidation =
     Config.domainOverride || // Skip if domain override is set.
