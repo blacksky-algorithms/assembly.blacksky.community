@@ -8,7 +8,7 @@ import { Routes, Route, Link, useParams, useLocation } from 'react-router'
 
 import ConversationConfig from './conversation-config'
 import ConversationStats from './stats'
-import { useAuth } from 'react-oidc-context'
+import { useAuth } from '../../util/auth-shim'
 
 import ModerateComments from './comment-moderation/'
 import TopicModeration from './topic-moderation/'

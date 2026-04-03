@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Heading, Link, Text } from 'theme-ui'
 import Url from '../../util/url'
-import { useAuth } from 'react-oidc-context'
+import { useAuth } from '../../util/auth-shim'
 import PolisNet from '../../util/net'
 
 const { urlPrefix } = Url

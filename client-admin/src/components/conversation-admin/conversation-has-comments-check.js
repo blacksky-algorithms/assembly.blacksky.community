@@ -5,7 +5,7 @@ import PropTypes from 'prop-types'
 import strings from '../../strings/strings'
 import { useSelector, useDispatch } from 'react-redux'
 import { populateAllCommentStores } from '../../actions'
-import { useAuth } from 'react-oidc-context'
+import { useAuth } from '../../util/auth-shim'
 
 const ConversationHasCommentsCheck = ({ conversation_id, strict_moderation, loading }) => {
   const dispatch = useDispatch()

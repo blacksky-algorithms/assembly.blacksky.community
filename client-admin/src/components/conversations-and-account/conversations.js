@@ -6,7 +6,7 @@ import { handleCreateConversationSubmit, populateConversationsStore } from '../.
 import { isAuthReady } from '../../util/net'
 
 import Url from '../../util/url'
-import { useAuth } from 'react-oidc-context'
+import { useAuth } from '../../util/auth-shim'
 import { Box, Heading, Button, Text } from 'theme-ui'
 import Conversation from './conversation'
 import { useLocation, useNavigate } from 'react-router'
