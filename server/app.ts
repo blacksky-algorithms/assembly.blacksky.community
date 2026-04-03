@@ -793,11 +793,12 @@ helpersInitialized.then(
         getConversationIdFetchZid,
         assignToPCustom("zid")
       ),
+      want("xid", getStringLimitLength(1, 999), assignToP),
       resolve_pidThing("not_voted_by_pid", assignToP, "get:nextComment"),
       want("without", getArrayOfInt, assignToP),
       // preferred language of nextComment
       want("lang", getStringLimitLength(1, 10), assignToP),
-      ensureParticipantOptional({ createIfMissing: false, issueJWT: false }),
+      ensureParticipantOptional({ createIfMissing: false, issueJWT: true }),
       haltOnTimeout,
       handle_GET_nextComment
     );

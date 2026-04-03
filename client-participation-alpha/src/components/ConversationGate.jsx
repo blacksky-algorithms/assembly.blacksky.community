@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAtprotoIdentity } from '../lib/atproto-session';
+import { getConversationToken } from '../lib/auth';
+import PolisNet from '../lib/net';
 import AtprotoLogin from './AtprotoLogin';
 import UserIdentity from './UserIdentity';
 import Survey from './Survey';
@@ -16,24 +18,48 @@ export default function ConversationGate({
 }) {
   const [identity, setIdentity] = useState(null);
   const [checked, setChecked] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [statement, setStatement] = useState(initialStatement);
 
   useEffect(() => {
-    setIdentity(getAtprotoIdentity());
+    const id = getAtprotoIdentity();
+    setIdentity(id);
     setChecked(true);
-  }, []);
 
-  // Still checking localStorage — render nothing to avoid flash
+    // If authenticated, call participationInit client-side to get the correct XID JWT.
+    // This ensures the xid → pid resolution happens and the JWT is stored for
+    // subsequent calls (nextComment, votes) to use the correct pid.
+    if (id) {
+      const existingToken = getConversationToken(conversation_id);
+      const isXidToken = existingToken?.xid_participant === true;
+
+      if (!existingToken || !isXidToken) {
+        PolisNet.polisGet('/participationInit', { conversation_id, includePCA: false })
+          .then((data) => {
+            if (data?.nextComment) {
+              setStatement(data.nextComment);
+            }
+            setReady(true);
+          })
+          .catch(() => setReady(true));
+      } else {
+        setReady(true);
+      }
+    } else {
+      setReady(true);
+    }
+  }, [conversation_id]);
+
   if (!checked) return null;
 
   const needsAuth = authNeededToVote || authNeededToWrite;
   const isLoggedIn = identity !== null;
 
-  // Auth gate: require login before showing participation UI
   if (needsAuth && !isLoggedIn) {
-    return (
-      <AtprotoLogin conversation_id={conversation_id} s={s} />
-    );
+    return <AtprotoLogin conversation_id={conversation_id} s={s} />;
   }
+
+  if (isLoggedIn && !ready) return null;
 
   return (
     <>
@@ -49,7 +75,7 @@ export default function ConversationGate({
       )}
 
       <Survey
-        initialStatement={initialStatement}
+        initialStatement={statement}
         conversation_id={conversation_id}
         s={s}
       />
