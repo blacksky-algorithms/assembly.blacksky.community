@@ -196,8 +196,14 @@ function doGetConversationPreloadInfo(conversation_id: any) {
         help_color: conv.help_color,
         help_bgcolor: conv.help_bgcolor,
         style_btn: conv.style_btn,
-        auth_needed_to_vote: false,
-        auth_needed_to_write: false,
+        auth_needed_to_vote: ifDefinedFirstElseSecond(
+          conv.auth_needed_to_vote,
+          DEFAULTS.auth_needed_to_vote
+        ),
+        auth_needed_to_write: ifDefinedFirstElseSecond(
+          conv.auth_needed_to_write,
+          DEFAULTS.auth_needed_to_write
+        ),
         auth_opt_allow_3rdparty: auth_opt_allow_3rdparty,
       };
       conv.conversation_id = conversation_id;

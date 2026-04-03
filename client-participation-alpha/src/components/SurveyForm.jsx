@@ -27,15 +27,28 @@ const submitPerspectiveAPI = async (text, conversation_id) => {
 export default function SurveyForm({ s, conversation_id }) {
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [commentError, setCommentError] = useState('');
   const maxLength = 400;
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (!text.trim()) return;
-    setFeedback(s.commentSent);
     const submittedText = text;
     setText('');
-    submitPerspectiveAPI(submittedText, conversation_id);
+    try {
+      await submitPerspectiveAPI(submittedText, conversation_id);
+      setFeedback(s.commentSent);
+    } catch (error) {
+      const errorText = error.responseText || error.message || '';
+      if (errorText.includes('polis_err_post_votes_social_needed') ||
+          errorText.includes('polis_err_post_comment_social_needed')) {
+        setFeedback('');
+        setText(submittedText);
+        setCommentError('You need to sign in to submit a comment.');
+      } else {
+        setFeedback(s.commentSent || 'Comment submitted.');
+      }
+    }
   };
 
   if (feedback) {
@@ -70,6 +83,7 @@ export default function SurveyForm({ s, conversation_id }) {
           {s.submitComment}
         </button>
       </form>
+      {commentError && <p className="comment-error">{commentError}</p>}
     </div>
   );
 }

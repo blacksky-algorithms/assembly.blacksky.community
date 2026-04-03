@@ -98,6 +98,10 @@ async function votesPost(
     throw "polis_err_conversation_is_closed";
   }
 
+  if (conv.auth_needed_to_vote && !xid) {
+    throw "polis_err_post_votes_social_needed";
+  }
+
   if (conv.use_xid_whitelist) {
     const is_whitelisted = await isXidWhitelisted(conv.owner!, xid!);
     if (!is_whitelisted) {

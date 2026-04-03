@@ -332,6 +332,11 @@ async function handle_POST_comments(req: RequestWithP, res: any) {
       return;
     }
 
+    if (conversation.auth_needed_to_write && !xid) {
+      failJson(res, 403, "polis_err_post_comment_social_needed");
+      return;
+    }
+
     // 4. Moderate the comment
     const { active, mod } = await moderateComment(
       txt,

@@ -1,4 +1,5 @@
 import { handleJwtFromResponse, getConversationToken, getConversationIdFromUrl } from './auth';
+import { getAtprotoIdentity } from './atproto-session';
 
 // Simplified service base resolution (both env vars are required)
 const SERVICE_BASE: string = (
@@ -10,134 +11,14 @@ const SERVICE_BASE: string = (
 // Default request timeout (ms)
 const REQUEST_TIMEOUT_MS: number = Number(import.meta.env.PUBLIC_REQUEST_TIMEOUT_MS) || 10000;
 
-// Optional base path (kept for compatibility; ensure it is normalized when used)
-const basePath: string = '';
-
-// Type definitions
-type OidcTokenGetter = (options?: { cacheMode?: string }) => Promise<string | null>;
-type OidcLoginRedirect = () => void;
-
 interface PolisApiError extends Error {
   responseText?: string;
   status?: number;
 }
 
-// Auth/OIDC token getter function - this should be set by the app when Auth is initialized
-let getOidcAccessToken: OidcTokenGetter | null = null;
-
-let authReady = false;
-let authReadyPromise: Promise<void> | null = null;
-let authReadyResolve: ((value: void) => void) | null = null;
-
-// Create a promise that resolves when auth is ready
-const initAuthReadyPromise = () => {
-  authReadyPromise = new Promise((resolve) => {
-    authReadyResolve = resolve;
-  });
-}
-
-// Initialize the promise immediately
-initAuthReadyPromise();
-
-export const setOidcTokenGetter = (getter: OidcTokenGetter | null) => {
-  getOidcAccessToken = getter;
-
-  if (getter) {
-    // Auth is now ready
-    authReady = true;
-    if (authReadyResolve) {
-      authReadyResolve();
-    }
-  } else {
-    // Auth is being cleared, reset the ready state
-    authReady = false;
-    initAuthReadyPromise();
-  }
-};
-
-// Store Auth hooks for login redirect
-let oidcLoginRedirect: OidcLoginRedirect | null = null;
-
-interface OidcActions {
-  signinRedirect?: OidcLoginRedirect;
-}
-
-export const setOidcActions = (actions: OidcActions | null) => {
-  if (actions && typeof actions === 'object') {
-    oidcLoginRedirect = actions.signinRedirect || null;
-  } else {
-    // Clear if null/undefined passed
-    oidcLoginRedirect = null;
-  }
-};
-
-// Export functions to check auth readiness
-export const isAuthReady = () => authReady;
-export const waitForAuthReady = () => authReadyPromise;
-
-const getAccessTokenSilentlySPA = async (options?: { cacheMode?: string }): Promise<string | null | undefined> => {
-  // On the server, skip OIDC entirely
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-
-  // If no getter is registered, skip immediately (do not wait)
-  if (!getOidcAccessToken) {
-    return undefined;
-  }
-
-  // Wait for auth to be ready
-  if (!authReady && authReadyPromise) {
-    await authReadyPromise;
-  }
-
-  if (getOidcAccessToken) {
-    try {
-      const token = await getOidcAccessToken({
-        cacheMode: 'on', // Use cached token if valid
-        ...options
-      });
-      return token;
-    } catch (e: any) {
-      // Handle specific OIDC errors
-      if (
-        e.error === 'login_required' &&
-        oidcLoginRedirect &&
-        typeof oidcLoginRedirect === 'function'
-      ) {
-        oidcLoginRedirect();
-        return null;
-      }
-
-      // Let the error bubble up to be handled by the calling code
-      throw e;
-    }
-  } else {
-    console.warn('⚠️ Token getter not available even after waiting');
-    return Promise.resolve(undefined);
-  }
-};
-
-// Request interceptor for handling auth errors
-const handleAuthError = (error: PolisApiError, response: Response): PolisApiError => {
-  if (response && (response.status === 401 || response.status === 403)) {
-    console.warn('Authentication/authorization error:', response.status);
-    // For 401 (unauthorized), try to redirect to login
-    if (response.status === 401) {
-      // Check if we should force signout
-      if (oidcLoginRedirect && typeof oidcLoginRedirect === 'function') {
-        oidcLoginRedirect();
-        return error;
-      }
-    }
-  }
-
-  throw error;
-};
-
 async function polisFetch<T = any>(
-  api: string, 
-  data?: Record<string, any>, 
+  api: string,
+  data?: Record<string, any>,
   type?: string
 ): Promise<T> {
   if (typeof api !== 'string') {
@@ -159,6 +40,16 @@ async function polisFetch<T = any>(
     'Cache-Control': 'max-age=0'
   };
 
+  // Inject atproto identity as xid params if authenticated
+  if (typeof window !== 'undefined' && data) {
+    const identity = getAtprotoIdentity();
+    if (identity && !data.xid) {
+      data.xid = identity.did;
+      data.x_name = identity.displayName;
+      data.x_profile_image_url = identity.avatarUrl;
+    }
+  }
+
   let body: string | null = null;
   let method = type ? type.toUpperCase() : 'GET';
 
@@ -169,43 +60,24 @@ async function polisFetch<T = any>(
     body = JSON.stringify(data);
   }
 
+  // Attach conversation-specific JWT if available
   try {
-    // First try OIDC token
-    const oidcToken = await getAccessTokenSilentlySPA();
-    if (oidcToken) {
-      headers.Authorization = `Bearer ${oidcToken}`;
-    } else {
-      // Fall back to conversation-specific JWT if available
-      // Extract conversation_id from data or current URL path
-      let conversationId: string | null = null;
-      
-      // First check if conversation_id is in the request data
-      if (data && (data as any).conversation_id) {
-        conversationId = (data as any).conversation_id;
-      } else if (typeof window !== 'undefined') {
-        // Try to extract from current page URL path using shared helper
-        conversationId = getConversationIdFromUrl();
-      }
-      
-      if (conversationId) {
-        const conversationToken = getConversationToken(conversationId);
-        if (conversationToken && conversationToken.token) {
-          headers.Authorization = `Bearer ${conversationToken.token}`;
-        }
+    let conversationId: string | null = null;
+    if (data && (data as any).conversation_id) {
+      conversationId = (data as any).conversation_id;
+    } else if (typeof window !== 'undefined') {
+      conversationId = getConversationIdFromUrl();
+    }
+
+    if (conversationId) {
+      const conversationToken = getConversationToken(conversationId);
+      if (conversationToken && conversationToken.token) {
+        headers.Authorization = `Bearer ${conversationToken.token}`;
       }
     }
-  } catch (error) {
-    // If getting the token fails, continue without it
-    // The server will decide if auth is required
-    console.warn('⚠️ Error getting access token:', error);
+  } catch {
+    // Continue without auth token — server decides if auth is required
   }
-
-  console.log('🔍 Requesting:', {
-    url,
-    method,
-    headers,
-    body
-  });
 
   // Add timeout to avoid indefinite hangs (especially during SSR)
   const controller = new AbortController();
@@ -230,31 +102,21 @@ async function polisFetch<T = any>(
   }
 
   if (!response.ok && response.status !== 304) {
-    // Read the response body to include in the error
-    const errorBody = await response.text()
-    console.error('❌ API Error Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorBody
-    });
+    const errorBody = await response.text();
 
-    // Create a new error object and attach the response body
     const error: PolisApiError = new Error(
       `Polis API Error: ${method} ${url} failed with status ${response.status} (${response.statusText})`
     );
     error.responseText = errorBody;
     error.status = response.status;
-
-    // handleAuthError will throw, so this never returns normally
-    handleAuthError(error, response);
-    throw error; // TypeScript needs this for type checking even though it's unreachable
+    throw error;
   }
 
   const jsonResponse = await response.json();
-  
+
   // Automatically handle JWT tokens in response
   handleJwtFromResponse(jsonResponse);
-  
+
   return jsonResponse;
 }
 
@@ -268,26 +130,21 @@ async function polisPut<T = any>(api: string, data?: Record<string, any>): Promi
 
 async function polisGet<T = any>(api: string, data?: Record<string, any>): Promise<T> {
   try {
-    const d = await polisFetch<T>(api, data, 'GET');
-    return d;
+    return await polisFetch<T>(api, data, 'GET');
   } catch (error: any) {
-    // If we have a 403, it might be the initial race condition. Retry once.
+    // If we have a 403, retry once after a short delay (initial race condition)
     if (error.status === 403) {
-      console.warn('⚠️ Received 403 on GET, retrying request once after a short delay...');
-      await new Promise((resolve) => setTimeout(resolve, 500)); // wait 500ms
-      return await polisFetch<T>(api, data, 'GET'); // This is the retry
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return await polisFetch<T>(api, data, 'GET');
     }
-    // For other errors, or if retry fails, log and re-throw.
-    console.error('❌ polisGet error:', error);
     throw error;
   }
 }
 
 const PolisNet = {
-  polisFetch: polisFetch,
-  polisPost: polisPost,
-  polisPut: polisPut,
-  polisGet: polisGet,
-  getAccessTokenSilentlySPA
-}
-export default PolisNet
+  polisFetch,
+  polisPost,
+  polisPut,
+  polisGet,
+};
+export default PolisNet;

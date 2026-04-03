@@ -1,0 +1,19 @@
+{
+  "client_id": "https://assembly.blacksky.community/oauth-client-metadata.json",
+  "client_name": "Blacksky People's Assembly",
+  "client_uri": "https://assembly.blacksky.community",
+  "redirect_uris": [
+    "https://assembly.blacksky.community/alpha/auth/callback"
+  ],
+  "scope": "atproto transition:generic",
+  "token_endpoint_auth_method": "none",
+  "response_types": [
+    "code"
+  ],
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "application_type": "web",
+  "dpop_bound_access_tokens": true
+}

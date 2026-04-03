@@ -13,3 +13,5 @@ docker-compose.yml
 
 **/CLAUDE.local.md
 delphi/umap_narrative/__init__.py
+CLAUDE.md
+.claude

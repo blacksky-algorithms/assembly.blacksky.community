@@ -1,17 +1,15 @@
 ---
 import Layout from '../pages/layouts/Layout.astro';
 import Header from '../components/Header.astro';
-import Survey from '../components/Survey.jsx';
-import SurveyForm from '../components/SurveyForm.jsx'; 
-import TopicAgenda from '../components/topicAgenda/TopicAgenda.jsx';
+import ConversationGate from '../components/ConversationGate.jsx';
 import { getTranslations } from '../strings/strings.js';
 import PolisNet from '../lib/net';
 
 const { conversation_id } = Astro.params;
 
 // Validate conversation_id - reject common invalid requests
-if (!conversation_id || 
-    conversation_id === 'favicon.ico' || 
+if (!conversation_id ||
+    conversation_id === 'favicon.ico' ||
     conversation_id === 'robots.txt' ||
     conversation_id === 'sitemap.xml' ||
     conversation_id.includes('.') || // Reject any ID with file extensions
@@ -49,14 +47,14 @@ try {
   // The handleJwtFromResponse function will be called when the page hydrates
 } catch (error: unknown) {
   console.error("Failed to fetch conversation data:", error);
-  
+
   // Type-safe error handling
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorCause = error instanceof Error ? error.cause : undefined;
-  const errorCode = errorCause && typeof errorCause === 'object' && 'code' in errorCause 
-    ? String(errorCause.code) 
+  const errorCode = errorCause && typeof errorCause === 'object' && 'code' in errorCause
+    ? String(errorCause.code)
     : undefined;
-  
+
   console.error("[DEBUG] Error details:", {
     message: errorMessage,
     cause: errorCause,
@@ -69,13 +67,13 @@ try {
 
 const s = await getTranslations();
 
-let surveyDetails, firstStatement, isConversationActive;
+let surveyDetails, firstStatement, isConversationActive, authNeededToVote, authNeededToWrite;
 if (initialData) {
   surveyDetails = {
     title: initialData.conversation.topic,
     description: initialData.conversation.description,
   };
-  
+
   firstStatement = {
     tid: initialData.nextComment?.tid,
     txt: initialData.nextComment?.txt,
@@ -83,6 +81,8 @@ if (initialData) {
   };
 
   isConversationActive = initialData.conversation.is_active;
+  authNeededToVote = initialData.conversation.auth_needed_to_vote || false;
+  authNeededToWrite = initialData.conversation.auth_needed_to_write || false;
 }
 
 const hideHeader = Astro.url.searchParams.get('hide_header');
@@ -97,7 +97,7 @@ const hideHeader = Astro.url.searchParams.get('hide_header');
       });
     }
   </script>
-  
+
   <div class="container">
     {hideHeader ? null : <Header />}
 
@@ -115,20 +115,15 @@ const hideHeader = Astro.url.searchParams.get('hide_header');
         <p class="description" set:html={surveyDetails?.description}></p>
 
         {isConversationActive ? (
-          <>
-            <TopicAgenda 
-              client:only="react"
-              conversation_id={conversation_id}
-            />
-            <p class="conversation-intro" set:html={s.participantHelpWelcomeText}></p>
-            <Survey 
-              client:load 
-              initialStatement={firstStatement}
-              conversation_id={initialData.conversation.conversation_id}
-              s={s} 
-            />
-            <SurveyForm client:load s={s} conversation_id={conversation_id} />
-          </>
+          <ConversationGate
+            client:load
+            conversation_id={initialData.conversation.conversation_id}
+            initialStatement={firstStatement}
+            authNeededToVote={authNeededToVote}
+            authNeededToWrite={authNeededToWrite}
+            s={s}
+            introHtml={s.participantHelpWelcomeText}
+          />
         ) : (
           <div class="footer-spacer"></div>
         )}

@@ -12,6 +12,8 @@
   "dependencies": {
     "@astrojs/node": "^9.3.0",
     "@astrojs/react": "^4.3.0",
+    "@atproto/api": "^0.19.6",
+    "@atproto/oauth-client-browser": "^0.3.41",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "astro": "^5.12.8",

@@ -1,0 +1,62 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Signing in...">
+  <div class="container" id="callback-container">
+    <p id="callback-status">Processing login...</p>
+  </div>
+
+  <script>
+    import { getOAuthClient } from '../../lib/atproto-oauth';
+    import { setAtprotoIdentity } from '../../lib/atproto-session';
+    import { Agent } from '@atproto/api';
+
+    async function handleCallback() {
+      const statusEl = document.getElementById('callback-status');
+
+      try {
+        const client = getOAuthClient();
+        const result = await client.init();
+
+        if (!result?.session) {
+          if (statusEl) statusEl.textContent = 'Login was cancelled or failed. Redirecting...';
+          const returnId = sessionStorage.getItem('return_conversation_id');
+          setTimeout(() => {
+            window.location.href = returnId ? `/alpha/${returnId}` : '/';
+          }, 1500);
+          return;
+        }
+
+        if (statusEl) statusEl.textContent = 'Fetching profile...';
+
+        // Create an authenticated agent to fetch the profile
+        const agent = new Agent(result.session);
+        const profile = await agent.getProfile({ actor: result.session.did });
+
+        setAtprotoIdentity({
+          did: result.session.did,
+          handle: profile.data.handle,
+          displayName: profile.data.displayName || profile.data.handle,
+          avatarUrl: profile.data.avatar || '',
+        });
+
+        // Redirect back to the conversation
+        const returnId = sessionStorage.getItem('return_conversation_id');
+        sessionStorage.removeItem('return_conversation_id');
+
+        if (returnId) {
+          window.location.href = `/alpha/${returnId}`;
+        } else {
+          window.location.href = '/';
+        }
+      } catch (err) {
+        console.error('OAuth callback error:', err);
+        if (statusEl) {
+          statusEl.textContent = `Login failed: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      }
+    }
+
+    handleCallback();
+  </script>
+</Layout>

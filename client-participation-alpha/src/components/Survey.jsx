@@ -1,30 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Statement } from './Statement';
 import EmailSubscribeForm from './EmailSubscribeForm';
+import AtprotoLogin from './AtprotoLogin';
 import { getPreferredLanguages } from '../strings/strings';
 import { getConversationToken } from '../lib/auth';
 import PolisNet from '../lib/net';
 
 const submitVoteAndGetNextCommentAPI = async (vote, conversation_id, high_priority = false) => {
   const decodedToken = getConversationToken(conversation_id);
-  
-  try {
-    const resp = await PolisNet.polisPost('/votes', {
-      agid: 1,
-      conversation_id,
-      high_priority,
-      lang: getPreferredLanguages()[0],
-      pid: decodedToken?.pid || -1,
-      tid: vote.tid,
-      vote: vote.vote,
-    });
-    
-    return resp;
-  } catch (error) {
-    // The net module already handles JWT extraction and storage
-    // Just re-throw the error for the component to handle
-    throw error;
-  }
+
+  const resp = await PolisNet.polisPost('/votes', {
+    agid: 1,
+    conversation_id,
+    high_priority,
+    lang: getPreferredLanguages()[0],
+    pid: decodedToken?.pid || -1,
+    tid: vote.tid,
+    vote: vote.vote,
+  });
+
+  return resp;
 };
 
 
@@ -33,6 +28,7 @@ export default function Survey({ initialStatement, s, conversation_id }) {
   const [isFetchingNext, setIsFetchingNext] = useState(false);
   const [isStatementImportant, setIsStatmentImportant] = useState(false);
   const [voteError, setVoteError] = useState(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
   // On hydration, fetch a participant-personalized next comment.
   // This replaces the SSR-provided generic comment if needed.
@@ -98,6 +94,7 @@ export default function Survey({ initialStatement, s, conversation_id }) {
       if (errorText.includes("polis_err_conversation_is_closed")) {
         errorMessage = s.convIsClosed || "This conversation is closed. No further voting is allowed.";
       } else if (errorText.includes("polis_err_post_votes_social_needed")) {
+        setShowAuthPrompt(true);
         errorMessage = "You need to sign in to vote.";
       } else if (errorText.includes("polis_err_xid_not_whitelisted")) {
         errorMessage = "Sorry, you must be registered to vote. Please sign in or contact the conversation owner.";
@@ -109,6 +106,10 @@ export default function Survey({ initialStatement, s, conversation_id }) {
     }
   };
 
+
+  if (showAuthPrompt) {
+    return <AtprotoLogin conversation_id={conversation_id} s={s} />;
+  }
 
   return (
     <>

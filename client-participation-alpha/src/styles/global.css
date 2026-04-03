@@ -243,6 +243,111 @@ h1 {
 .footer-links a:hover {
   text-decoration: underline;
 }
+/* Atproto Login */
+.atproto-login {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  background-color: #f9f9f9;
+}
+.atproto-login h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+.atproto-login-desc {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+.atproto-login-form {
+  display: flex;
+  gap: 0.5rem;
+}
+.atproto-login-form input {
+  flex-grow: 1;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+.atproto-login-form button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.atproto-login-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.atproto-login-error {
+  color: #dc3545;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* User Identity Display */
+.user-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+.user-identity-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.user-identity-avatar-placeholder {
+  background-color: #ddd;
+}
+.user-identity-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+.user-identity-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-identity-handle {
+  font-size: 0.8rem;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-identity-signout {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  flex-shrink: 0;
+}
+.user-identity-signout:hover {
+  color: #dc3545;
+  text-decoration: underline;
+}
+
 .importance-container {
   display: flex;
   align-items: center;
