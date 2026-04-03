@@ -21,11 +21,12 @@ function isLoopback(): boolean {
 
 // Ensure consistent origin for IndexedDB state storage in dev.
 // OAuth state is origin-specific — localhost and 127.0.0.1 are different origins.
+// The server only whitelists localhost, so redirect 127.0.0.1 → localhost.
 export function ensureConsistentOrigin(): void {
   if (typeof window === 'undefined') return;
-  if (window.location.hostname === 'localhost') {
+  if (window.location.hostname === '127.0.0.1') {
     const port = window.location.port ? `:${window.location.port}` : '';
-    window.location.replace(`http://127.0.0.1${port}${window.location.pathname}${window.location.search}${window.location.hash}`);
+    window.location.replace(`http://localhost${port}${window.location.pathname}${window.location.search}${window.location.hash}`);
   }
 }
 
@@ -34,7 +35,7 @@ let oauthClient: BrowserOAuthClient | null = null;
 function createOAuthClient(): BrowserOAuthClient {
   if (isLoopback()) {
     const port = window.location.port ? `:${window.location.port}` : '';
-    const redirectUri = `http://127.0.0.1${port}/auth/callback`;
+    const redirectUri = `http://localhost${port}/auth/callback`;
     const clientId =
       `http://localhost` +
       `?redirect_uri=${encodeURIComponent(redirectUri)}` +
