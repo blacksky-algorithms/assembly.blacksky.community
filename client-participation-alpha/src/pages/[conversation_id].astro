@@ -42,9 +42,17 @@ try {
   }
 
 
-  initialData = await PolisNet.polisGet('/participationInit', { conversation_id, includePCA: false });
-  // Note: JWT token handling will be done client-side since this is SSR
-  // The handleJwtFromResponse function will be called when the page hydrates
+  // Retry once on 502 — handles startup race when server isn't ready yet
+  try {
+    initialData = await PolisNet.polisGet('/participationInit', { conversation_id, includePCA: false });
+  } catch (firstErr: any) {
+    if (firstErr?.status === 502) {
+      await new Promise(r => setTimeout(r, 2000));
+      initialData = await PolisNet.polisGet('/participationInit', { conversation_id, includePCA: false });
+    } else {
+      throw firstErr;
+    }
+  }
 } catch (error: unknown) {
   console.error("Failed to fetch conversation data:", error);
 
