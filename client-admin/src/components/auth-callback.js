@@ -24,9 +24,12 @@ const AuthCallback = ({ onComplete }) => {
           return
         }
 
-        // Fetch profile
+        // Fetch profile and session info (for email)
         const agent = new Agent(result.session)
-        const profile = await agent.getProfile({ actor: result.session.did })
+        const [profile, sessionInfo] = await Promise.all([
+          agent.getProfile({ actor: result.session.did }),
+          agent.com.atproto.server.getSession()
+        ])
 
         const identity = {
           did: result.session.did,
@@ -35,11 +38,14 @@ const AuthCallback = ({ onComplete }) => {
           avatarUrl: profile.data.avatar || ''
         }
 
-        // Exchange DID for server admin JWT
+        // Exchange DID + email for server admin JWT
         const resp = await fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(identity)
+          body: JSON.stringify({
+            ...identity,
+            email: sessionInfo.data.email || null
+          })
         })
 
         if (!resp.ok) {

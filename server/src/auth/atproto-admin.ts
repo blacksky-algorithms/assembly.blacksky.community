@@ -4,9 +4,13 @@ import Config from "../config";
 import logger from "../utils/logger";
 import { getOrCreateUserIDFromOidcSub } from "./create-user";
 import { failJson } from "../utils/fail";
+import pg from "../db/pg-query";
 
 const JWT_ALGORITHM = "RS256" as const;
 const JWT_EXPIRATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
+
+// AIP stores DIDs with this prefix in oidc_user_mappings
+const AIP_DID_PREFIX = "oauth2|atproto|";
 
 function getPrivateKey(): string {
   const keyPath = Config.jwtPrivateKeyPath;
@@ -29,17 +33,30 @@ function issueAdminJWT(uid: number, did: string): string {
 }
 
 /**
+ * Look up existing user by DID in oidc_user_mappings.
+ * Checks both bare DID and AIP-prefixed format (oauth2|atproto|did:plc:xxx).
+ */
+async function findUidByDid(did: string): Promise<number | null> {
+  const rows = (await pg.queryP(
+    "SELECT uid FROM oidc_user_mappings WHERE oidc_sub = $1 OR oidc_sub = $2 LIMIT 1",
+    [did, `${AIP_DID_PREFIX}${did}`]
+  )) as any[];
+
+  return rows.length > 0 ? rows[0].uid : null;
+}
+
+/**
  * POST /api/v3/auth/atproto-login
  *
- * Exchanges an atproto DID for a server-issued admin JWT.
- * Creates a new user if the DID hasn't been seen before.
- * Reuses existing oidc_user_mappings table, treating DID as the oidc_sub.
+ * Exchanges an atproto DID + email for a server-issued admin JWT.
+ * Matches existing users by DID (oidc_user_mappings) or email (users table).
+ * Creates a new user if no match is found.
  */
 export async function handle_POST_atproto_login(
-  req: { p: { did: string; handle: string; displayName?: string; avatarUrl?: string } },
+  req: { p: { did: string; handle: string; email?: string; displayName?: string; avatarUrl?: string } },
   res: any
 ) {
-  const { did, handle, displayName, avatarUrl } = req.p;
+  const { did, handle, email, displayName } = req.p;
 
   if (!did || !handle) {
     failJson(res, 400, "polis_err_atproto_login_missing_params");
@@ -47,17 +64,24 @@ export async function handle_POST_atproto_login(
   }
 
   try {
-    // Reuse existing user mapping logic — DID is the oidc_sub.
-    // The handle serves as the email for user creation (since email is required by the schema).
-    const uid = await getOrCreateUserIDFromOidcSub(did, {
-      email: handle,
-      name: displayName || handle,
-      nickname: handle,
-    });
+    // First check for existing DID mapping (including AIP-prefixed format)
+    let uid = await findUidByDid(did);
+
+    if (uid) {
+      logger.info("atproto admin login: found existing DID mapping", { did, uid });
+    } else {
+      // No DID mapping — use getOrCreateUserIDFromOidcSub which matches by email
+      // Use the atproto account email if available, fall back to handle
+      const userEmail = email || handle;
+      uid = await getOrCreateUserIDFromOidcSub(did, {
+        email: userEmail,
+        name: displayName || handle,
+        nickname: handle,
+      });
+      logger.info("atproto admin login: created/matched user", { did, handle, email: userEmail, uid });
+    }
 
     const token = issueAdminJWT(uid, did);
-
-    logger.info("atproto admin login", { did, handle, uid });
 
     res.status(200).json({ token, uid });
   } catch (err) {
