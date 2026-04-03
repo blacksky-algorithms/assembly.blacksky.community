@@ -1,12 +1,13 @@
 import { handleJwtFromResponse, getConversationToken, getConversationIdFromUrl } from './auth';
 import { getAtprotoIdentity } from './atproto-session';
 
-// Simplified service base resolution (both env vars are required)
+// Service base resolution: browser uses PUBLIC_SERVICE_URL, SSR uses INTERNAL_SERVICE_URL.
+// Falls back to sensible defaults if env vars are not set.
 const SERVICE_BASE: string = (
   typeof window !== 'undefined'
-    ? import.meta.env.PUBLIC_SERVICE_URL
-    : import.meta.env.INTERNAL_SERVICE_URL
-  )?.replace(/\/$/, '') || '';
+    ? (import.meta.env.PUBLIC_SERVICE_URL || `${window.location.origin}/api/v3`)
+    : (import.meta.env.INTERNAL_SERVICE_URL || 'http://server:5000/api/v3')
+  ).replace(/\/$/, '');
 
 // Default request timeout (ms)
 const REQUEST_TIMEOUT_MS: number = Number(import.meta.env.PUBLIC_REQUEST_TIMEOUT_MS) || 10000;
