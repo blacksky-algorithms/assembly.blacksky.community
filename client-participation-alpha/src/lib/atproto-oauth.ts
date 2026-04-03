@@ -24,7 +24,7 @@ let oauthClient: BrowserOAuthClient | null = null;
 function createOAuthClient(): BrowserOAuthClient {
   if (isLoopback()) {
     const port = window.location.port ? `:${window.location.port}` : '';
-    const redirectUri = `http://127.0.0.1${port}/alpha/auth/callback`;
+    const redirectUri = `http://127.0.0.1${port}/auth/callback`;
     const clientId =
       `http://localhost` +
       `?redirect_uri=${encodeURIComponent(redirectUri)}` +
@@ -50,7 +50,7 @@ function createOAuthClient(): BrowserOAuthClient {
       client_id: `${OAUTH_BASE_URL}/oauth-client-metadata.json`,
       client_name: OAUTH_CLIENT_NAME,
       client_uri: OAUTH_BASE_URL,
-      redirect_uris: [`${OAUTH_BASE_URL}/alpha/auth/callback`],
+      redirect_uris: [`${OAUTH_BASE_URL}/auth/callback`],
       scope: OAUTH_SCOPE,
       token_endpoint_auth_method: 'none',
       response_types: ['code'],

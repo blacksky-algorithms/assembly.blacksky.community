@@ -22,7 +22,7 @@ import Layout from '../layouts/Layout.astro';
           if (statusEl) statusEl.textContent = 'Login was cancelled or failed. Redirecting...';
           const returnId = sessionStorage.getItem('return_conversation_id');
           setTimeout(() => {
-            window.location.href = returnId ? `/alpha/${returnId}` : '/';
+            window.location.href = returnId ? `/${returnId}` : '/';
           }, 1500);
           return;
         }
@@ -45,7 +45,7 @@ import Layout from '../layouts/Layout.astro';
         sessionStorage.removeItem('return_conversation_id');
 
         if (returnId) {
-          window.location.href = `/alpha/${returnId}`;
+          window.location.href = `/${returnId}`;
         } else {
           window.location.href = '/';
         }
