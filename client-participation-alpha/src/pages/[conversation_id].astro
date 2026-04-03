@@ -101,9 +101,14 @@ const hideHeader = Astro.url.searchParams.get('hide_header');
   {/* Handle JWT token from initial data on client side */}
   <script define:vars={{ initialData }}>
     if (initialData && initialData.auth && initialData.auth.token) {
-      // Import and use the centralized JWT handler
-      import('../lib/auth').then(({ setJwtToken }) => {
-        setJwtToken(initialData.auth.token);
+      // Only store SSR token if there isn't already a conversation-specific token.
+      // This prevents anonymous SSR tokens from overwriting xid tokens on refresh.
+      import('../lib/auth').then(({ setJwtToken, getConversationToken }) => {
+        const conversationId = initialData.conversation?.conversation_id;
+        const existing = conversationId ? getConversationToken(conversationId) : null;
+        if (!existing) {
+          setJwtToken(initialData.auth.token);
+        }
       });
     }
   </script>
