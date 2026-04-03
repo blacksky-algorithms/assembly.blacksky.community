@@ -8,8 +8,7 @@ import { isAuthReady } from './util/net'
 
 import { Routes, Route, Navigate } from 'react-router'
 
-import { useAuth } from 'react-oidc-context'
-import OidcConnector from './components/oidc-connector'
+import AtprotoConnector from './components/atproto-connector'
 import Spinner from './components/framework/spinner'
 
 /* landers */
@@ -18,6 +17,7 @@ import TOS from './components/landers/tos'
 import Privacy from './components/landers/privacy'
 import SignIn from './components/landers/signin'
 import SignOut from './components/landers/signout'
+import AuthCallback from './components/auth-callback'
 
 // /conversation-admin
 import ConversationAdminContainer from './components/conversation-admin/index'
@@ -27,6 +27,7 @@ import Account from './components/conversations-and-account/account'
 import Integrate from './components/conversations-and-account/integrate'
 
 import MainLayout from './components/main-layout'
+import { getAtprotoIdentity } from './util/atproto-oauth'
 
 const AUTH_LOADING_TIMEOUT = 3000
 
@@ -69,7 +70,15 @@ ProtectedRoute.propTypes = {
 
 const App = () => {
   const dispatch = useDispatch()
-  const { isAuthenticated, isLoading, error } = useAuth()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Check atproto identity on mount
+  useEffect(() => {
+    const identity = getAtprotoIdentity()
+    setIsAuthenticated(identity !== null)
+    setIsLoading(false)
+  }, [])
 
   const [sidebarState, setSidebarState] = useState(() => {
     const mql = window.matchMedia(`(min-width: 800px)`)
@@ -85,8 +94,8 @@ const App = () => {
   }, [dispatch])
 
   const isAuthed = useCallback(() => {
-    return isAuthenticated && !error
-  }, [isAuthenticated, error])
+    return isAuthenticated
+  }, [isAuthenticated])
 
   const loadUserDataIfNeeded = useCallback(() => {
     const authSystemReady = isAuthReady()
@@ -101,7 +110,6 @@ const App = () => {
   }, [])
 
   useEffect(() => {
-    // Set up media query listener
     const { mql } = sidebarState
     mql.addListener(mediaQueryChanged)
 
@@ -111,14 +119,11 @@ const App = () => {
   }, [sidebarState.mql, mediaQueryChanged])
 
   useEffect(() => {
-    // Listen for auth ready event
     const handleAuthReady = () => {
       loadUserDataIfNeeded()
     }
 
     window.addEventListener('polisAuthReady', handleAuthReady)
-
-    // Initial load
     loadUserDataIfNeeded()
 
     return () => {
@@ -126,9 +131,15 @@ const App = () => {
     }
   }, [loadUserDataIfNeeded])
 
+  // Re-check auth when returning from OAuth callback
+  const handleAuthComplete = useCallback(() => {
+    const identity = getAtprotoIdentity()
+    setIsAuthenticated(identity !== null)
+  }, [])
+
   return (
     <>
-      <OidcConnector />
+      <AtprotoConnector onAuthComplete={handleAuthComplete} />
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
@@ -136,6 +147,7 @@ const App = () => {
         <Route path="/signout" element={<SignOut />} />
         <Route path="/tos" element={<TOS />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/auth/callback" element={<AuthCallback onComplete={handleAuthComplete} />} />
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute isAuthed={isAuthed()} isLoading={isLoading} />}>

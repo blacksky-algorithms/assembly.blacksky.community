@@ -55,6 +55,8 @@
     "webpack-dev-server": "~5.2.2"
   },
   "dependencies": {
+    "@atproto/api": "^0.19.6",
+    "@atproto/oauth-client-browser": "^0.3.41",
     "@reduxjs/toolkit": "^2.8.2",
     "@theme-ui/mdx": "^0.17.2",
     "d3-scale": "~3.3.0",
