@@ -6,7 +6,7 @@ import { getAtprotoIdentity } from './atproto-session';
 const SERVICE_BASE: string = (
   typeof window !== 'undefined'
     ? (import.meta.env.PUBLIC_SERVICE_URL || `${window.location.origin}/api/v3`)
-    : (import.meta.env.INTERNAL_SERVICE_URL || 'http://server:5000/api/v3')
+    : (import.meta.env.INTERNAL_SERVICE_URL || 'http://nginx-proxy:80/api/v3')
   ).replace(/\/$/, '');
 
 // Default request timeout (ms)
