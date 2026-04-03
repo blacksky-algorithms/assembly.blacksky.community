@@ -51,10 +51,6 @@ export default function SurveyForm({ s, conversation_id }) {
     }
   };
 
-  if (feedback) {
-    return <p style={{ textAlign: 'center', color: '#28a745', fontWeight: 'bold' }}>{feedback}</p>;
-  }
-
   return (
     <div>
       <div className="guidelines">
@@ -72,7 +68,7 @@ export default function SurveyForm({ s, conversation_id }) {
           <textarea
             placeholder={s.writePrompt}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => { setText(e.target.value); setFeedback(''); }}
             maxLength={maxLength}
           />
           <div className="char-counter">
@@ -83,6 +79,7 @@ export default function SurveyForm({ s, conversation_id }) {
           {s.submitComment}
         </button>
       </form>
+      {feedback && <p style={{ color: '#28a745', fontWeight: 'bold', marginTop: '0.5rem' }}>{feedback}</p>}
       {commentError && <p className="comment-error">{commentError}</p>}
     </div>
   );
