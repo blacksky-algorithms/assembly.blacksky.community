@@ -2,7 +2,7 @@ import PolisNet from '../lib/net';
 import React, { useState } from 'react';
 
 const subscribeAPI = async (email, conversation_id) => {
-  return await PolisNet.polisPost('/notifications', {
+  return await PolisNet.polisPost('/convSubscriptions', {
     type: 1,
     email,
     conversation_id,
