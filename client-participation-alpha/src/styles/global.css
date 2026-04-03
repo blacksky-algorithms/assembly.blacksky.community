@@ -16,20 +16,13 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
-.logo {
-  width: 44px;
-  height: 50px;
-  background-color: #03a9f4;
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.8rem;
-  font-family: Georgia, serif;
-  font-weight: normal;
+.blacksky-logo {
+  display: block;
+  margin: 0 auto;
+}
+.blacksky-logo-footer {
+  display: block;
   margin: 0 auto 1rem;
-  position: relative;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 h1 {
   font-size: 1.75rem;
@@ -150,7 +143,7 @@ h1 {
   border-radius: 4px;
 }
 .submit-button {
-  background-color: #007bff;
+  background-color: #8B8BFF;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -274,7 +267,7 @@ h1 {
   font-size: 1rem;
 }
 .atproto-login-form button {
-  background-color: #007bff;
+  background-color: #8B8BFF;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
