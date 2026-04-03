@@ -6,7 +6,7 @@ const OAUTH_BASE_URL: string =
 const OAUTH_CLIENT_NAME: string =
   import.meta.env.PUBLIC_OAUTH_CLIENT_NAME || "Blacksky People's Assembly";
 
-const OAUTH_SCOPE = 'atproto transition:generic';
+const OAUTH_SCOPE = 'atproto';
 
 function isLoopback(): boolean {
   if (typeof window === 'undefined') return false;
@@ -17,6 +17,16 @@ function isLoopback(): boolean {
     host === '[::1]' ||
     host === '::1'
   );
+}
+
+// Ensure consistent origin for IndexedDB state storage in dev.
+// OAuth state is origin-specific — localhost and 127.0.0.1 are different origins.
+export function ensureConsistentOrigin(): void {
+  if (typeof window === 'undefined') return;
+  if (window.location.hostname === 'localhost') {
+    const port = window.location.port ? `:${window.location.port}` : '';
+    window.location.replace(`http://127.0.0.1${port}${window.location.pathname}${window.location.search}${window.location.hash}`);
+  }
 }
 
 let oauthClient: BrowserOAuthClient | null = null;

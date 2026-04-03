@@ -14,9 +14,12 @@ import Layout from '../layouts/Layout.astro';
   </div>
 
   <script>
-    import { getOAuthClient } from '../../lib/atproto-oauth';
+    import { getOAuthClient, ensureConsistentOrigin } from '../../lib/atproto-oauth';
     import { setAtprotoIdentity } from '../../lib/atproto-session';
     import { Agent } from '@atproto/api';
+
+    // Redirect localhost → 127.0.0.1 so IndexedDB state matches
+    ensureConsistentOrigin();
 
     async function handleCallback() {
       const statusEl = document.getElementById('callback-status');

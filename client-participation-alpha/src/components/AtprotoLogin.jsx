@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { getOAuthClient } from '../lib/atproto-oauth';
+import React, { useState, useEffect } from 'react';
+import { getOAuthClient, ensureConsistentOrigin } from '../lib/atproto-oauth';
 
 export default function AtprotoLogin({ conversation_id, s }) {
   const [handle, setHandle] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    ensureConsistentOrigin();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
