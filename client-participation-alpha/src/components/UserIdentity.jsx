@@ -11,15 +11,13 @@ export default function UserIdentity({ identity }) {
 
   return (
     <div className="user-identity">
-      {identity.avatarUrl ? (
-        <img
-          src={identity.avatarUrl}
-          alt={identity.displayName}
-          className="user-identity-avatar"
-        />
-      ) : (
-        <div className="user-identity-avatar user-identity-avatar-placeholder" />
-      )}
+      <img
+        src={identity.avatarUrl || ''}
+        alt={identity.displayName}
+        className="user-identity-avatar"
+        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+      />
+      <div className="user-identity-avatar user-identity-avatar-placeholder" style={{ display: identity.avatarUrl ? 'none' : 'block' }} />
       <a className="user-identity-info" href={`https://blacksky.community/profile/${identity.did}`} target="_blank" rel="noopener noreferrer">
         <span className="user-identity-name">
           {identity.displayName}
