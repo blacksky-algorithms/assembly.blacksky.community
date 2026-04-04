@@ -436,6 +436,7 @@ helpersInitialized.then(
 
     app.get(
       "/api/v3/auth/check-membership",
+      moveToBody,
       need("did", getStringLimitLength(1, 253), assignToP),
       handle_GET_check_membership
     );
