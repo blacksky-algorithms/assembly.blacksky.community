@@ -69,7 +69,7 @@ import {
 } from "./src/routes/api/v3/feeds";
 import { handle_GET_reportExport } from "./src/routes/export";
 import { handle_GET_reportNarrative } from "./src/routes/reportNarrative";
-import { handle_POST_atproto_login } from "./src/auth/atproto-admin";
+import { handle_POST_atproto_login, handle_GET_check_membership } from "./src/auth/atproto-admin";
 import {
   handle_POST_auth_deregister_jwt,
   handle_POST_joinWithInvite,
@@ -432,6 +432,12 @@ helpersInitialized.then(
       want("displayName", getStringLimitLength(1, 500), assignToP),
       want("avatarUrl", getStringLimitLength(1, 3000), assignToP),
       handle_POST_atproto_login
+    );
+
+    app.get(
+      "/api/v3/auth/check-membership",
+      need("did", getStringLimitLength(1, 253), assignToP),
+      handle_GET_check_membership
     );
 
     app.get(

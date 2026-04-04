@@ -20,7 +20,11 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
             ) : (
               <div className="avatar"></div>
             )}
-            <span>{statement.author_name} {s.x_wrote || 'wrote:'}</span>
+            <span>
+              {statement.author_name}
+              {statement.author_is_blacksky_member && <span className="blacksky-member-badge">Blacksky Member</span>}
+              {' '}{s.x_wrote || 'wrote:'}
+            </span>
           </a>
         ) : (
           <div className="anonymous-user">

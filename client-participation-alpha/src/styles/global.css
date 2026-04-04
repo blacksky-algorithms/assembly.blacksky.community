@@ -355,6 +355,19 @@ a.statement-author:hover, a.user-identity-info:hover {
   text-decoration: underline;
 }
 
+/* Blacksky Member Badge */
+.blacksky-member-badge {
+  display: inline-block;
+  background-color: #8B8BFF;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
 .importance-container {
   display: flex;
   align-items: center;

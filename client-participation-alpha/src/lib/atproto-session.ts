@@ -5,6 +5,7 @@ export interface AtprotoIdentity {
   handle: string;
   displayName: string;
   avatarUrl: string;
+  blackskyMember?: boolean;
 }
 
 export function setAtprotoIdentity(identity: AtprotoIdentity): void {

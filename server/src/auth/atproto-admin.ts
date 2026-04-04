@@ -1,10 +1,26 @@
 import jwt from "jsonwebtoken";
 import fs from "node:fs";
+import pgLib from "pg";
 import Config from "../config";
 import logger from "../utils/logger";
 import { getOrCreateUserIDFromOidcSub } from "./create-user";
 import { failJson } from "../utils/fail";
 import pg from "../db/pg-query";
+
+// eslint-disable-next-line no-restricted-properties
+const FEEDGEN_DATABASE_URL = process.env.FEEDGEN_DATABASE_URL || "";
+let feedgenPool: pgLib.Pool | null = null;
+
+function getFeedgenPool(): pgLib.Pool {
+  if (!feedgenPool) {
+    feedgenPool = new pgLib.Pool({
+      connectionString: FEEDGEN_DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 3,
+    });
+  }
+  return feedgenPool;
+}
 
 const JWT_ALGORITHM = "RS256" as const;
 const JWT_EXPIRATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
@@ -87,5 +103,67 @@ export async function handle_POST_atproto_login(
   } catch (err) {
     logger.error("polis_err_atproto_login", err);
     failJson(res, 500, "polis_err_atproto_login");
+  }
+}
+
+/**
+ * GET /api/v3/auth/check-membership?did={did}
+ *
+ * Checks if a DID is a member of the Blacksky feed by querying the
+ * rsky-feedgen read-only database directly.
+ */
+export async function handle_GET_check_membership(
+  req: { p: { did: string } },
+  res: any
+) {
+  const { did } = req.p;
+
+  if (!did) {
+    failJson(res, 400, "polis_err_check_membership_missing_did");
+    return;
+  }
+
+  if (!FEEDGEN_DATABASE_URL) {
+    // No feedgen DB configured — return not a member
+    res.status(200).json({ member: false, lists: [] });
+    return;
+  }
+
+  try {
+    const pool = getFeedgenPool();
+    const result = await pool.query(
+      "SELECT list FROM membership WHERE did = $1 AND included = true",
+      [did]
+    );
+
+    const lists = result.rows.map((r: any) => r.list);
+    res.status(200).json({ member: lists.length > 0, lists });
+  } catch (err) {
+    logger.error("polis_err_check_membership", err);
+    // Non-fatal — return not a member on error
+    res.status(200).json({ member: false, lists: [] });
+  }
+}
+
+/**
+ * Batch check membership for multiple DIDs. Used by comment author lookup.
+ */
+export async function checkMembershipBatch(
+  dids: string[]
+): Promise<Set<string>> {
+  if (!FEEDGEN_DATABASE_URL || dids.length === 0) {
+    return new Set();
+  }
+
+  try {
+    const pool = getFeedgenPool();
+    const result = await pool.query(
+      "SELECT DISTINCT did FROM membership WHERE did = ANY($1) AND included = true AND list = 'blacksky'",
+      [dids]
+    );
+    return new Set(result.rows.map((r: any) => r.did));
+  } catch (err) {
+    logger.warn("Failed to batch check membership", err);
+    return new Set();
   }
 }

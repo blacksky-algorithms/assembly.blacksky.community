@@ -3,6 +3,7 @@ import _ from "underscore";
 const { Translate } = require("@google-cloud/translate").v2;
 
 import { GetCommentsParams, ConversationInfo } from "./d";
+import { checkMembershipBatch } from "./auth/atproto-admin";
 import { getConversationInfo } from "./conversation";
 import { MPromise } from "./utils/metered";
 import Config from "./config";
@@ -106,7 +107,7 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
     .then(async function (comments: CommentRow[]): Promise<CommentRow[]> {
       // Batch-lookup author xid info for all comments
       const pids = [...new Set(comments.map((c) => c.pid).filter((p) => p !== undefined))];
-      const authorMap: Record<number, { author_xid: string; author_name: string; author_avatar: string }> = {};
+      const authorMap: Record<number, { author_xid: string; author_name: string; author_avatar: string; author_is_blacksky_member: boolean }> = {};
 
       if (pids.length > 0) {
         try {
@@ -119,17 +120,21 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
             [o.zid, pids]
           ) as any[];
 
+          // Batch check membership for all author DIDs
+          const authorDids = xidRows.filter((r: any) => r.xid).map((r: any) => r.xid);
+          const memberDids = await checkMembershipBatch(authorDids);
+
           for (const row of xidRows) {
             if (row.xid) {
               authorMap[row.pid] = {
                 author_xid: row.xid,
                 author_name: row.x_name || "",
                 author_avatar: row.x_profile_image_url || "",
+                author_is_blacksky_member: memberDids.has(row.xid),
               };
             }
           }
         } catch (err) {
-          // Non-fatal — fall back to anonymous display
           logger.warn("Failed to fetch author xid info for comments", err);
         }
       }
@@ -141,6 +146,7 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
           c.author_xid = author.author_xid;
           c.author_name = author.author_name;
           c.author_avatar = author.author_avatar;
+          c.author_is_blacksky_member = author.author_is_blacksky_member;
         }
       });
       return comments;

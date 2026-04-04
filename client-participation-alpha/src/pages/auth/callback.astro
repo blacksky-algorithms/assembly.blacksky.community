@@ -39,15 +39,21 @@ import Layout from '../layouts/Layout.astro';
 
         if (statusEl) statusEl.textContent = 'Fetching profile...';
 
-        // Create an authenticated agent to fetch the profile
+        // Fetch profile and membership status in parallel
         const agent = new Agent(result.session);
-        const profile = await agent.getProfile({ actor: result.session.did });
+        const [profile, membershipResp] = await Promise.all([
+          agent.getProfile({ actor: result.session.did }),
+          fetch(`${window.location.origin}/api/v3/auth/check-membership?did=${encodeURIComponent(result.session.did)}`)
+            .then(r => r.json())
+            .catch(() => ({ member: false })),
+        ]);
 
         setAtprotoIdentity({
           did: result.session.did,
           handle: profile.data.handle,
           displayName: profile.data.displayName || profile.data.handle,
           avatarUrl: profile.data.avatar || '',
+          blackskyMember: membershipResp.member || false,
         });
 
         // Redirect back to the conversation
