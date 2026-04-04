@@ -38,7 +38,8 @@ async function polisFetch<T = any>(
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'max-age=0'
+    'Cache-Control': 'max-age=0',
+    ...(typeof window === 'undefined' ? { 'X-Forwarded-Proto': 'https' } : {}),
   };
 
   // Inject atproto identity as xid params if authenticated
