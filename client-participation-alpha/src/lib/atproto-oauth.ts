@@ -6,7 +6,7 @@ const OAUTH_BASE_URL: string =
 const OAUTH_CLIENT_NAME: string =
   import.meta.env.PUBLIC_OAUTH_CLIENT_NAME || "Blacksky People's Assembly";
 
-const OAUTH_SCOPE = 'atproto rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app%23bsky_appview';
+const OAUTH_SCOPE = 'atproto transition:email rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app%23bsky_appview';
 
 function isLoopback(): boolean {
   if (typeof window === 'undefined') return false;
