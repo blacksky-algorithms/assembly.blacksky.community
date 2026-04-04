@@ -41,7 +41,7 @@ s.writeCommentHelpText = "Wenn Ihre Sichtweise noch nicht vertreten wird, <stron
 s.helpWriteListIntro = "Was macht ein gutes Statement aus?";
 s.helpWriteListStandalone = "Eine unabhängige Idee";
 s.helpWriteListRaisNew = "Bringen Sie neue Perspektiven, Erfahrungen und Probleme ein";
-s.helpWriteListShort = "Knapp und präzise formuliert (maximal 140 Zeichen)";
+s.helpWriteListShort = "Knapp und präzise formuliert (maximal 400 Zeichen)";
 s.heresHowGroupVoted = "So hat Gruppe {{GROUP_NUMBER}} abgestimmt:";
 s.one_person = "{{x}} Person";
 s.x_people = "{{x}} Leute";
@@ -73,7 +73,7 @@ s.hereIsNextStatement = "Bewertung war erfolgreich. Oben kannst du das nächste 
 
 s.tip = "Tipp:";
 s.commentWritingTipsHintsHeader = "Hinweise für dein Statement.";
-s.tipCharLimit = "Kommentare sind auf 140 Zeichen beschränkt.";
+s.tipCharLimit = "Kommentare sind auf 400 Zeichen beschränkt.";
 s.tipCommentsRandom = "Statements werden in zufälliger Reihenfolge angezeigt. Ihre Antwort bezieht sich dabei nicht auf eine bestimmte Person.";
 s.tipOneIdea = "Teilen Sie längere Statements, die mehrere Aspekte beinhalten in einzelne Statements auf. Das erleichtert es den TeilnehmerInnen, über Ihr Statement abzustimmen.";
 s.tipNoQuestions = "Statements sollten als Standpunkte und nicht als Fragen formuliert werden. Die TeilnehmerInnen werden Ihrem Standpunkt zustimmen oder ihn ablehnen.";
