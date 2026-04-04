@@ -3,7 +3,8 @@
   "client_name": "Blacksky People's Assembly",
   "client_uri": "https://assembly.blacksky.community",
   "redirect_uris": [
-    "https://assembly.blacksky.community/auth/callback"
+    "https://assembly.blacksky.community/auth/callback",
+    "https://assembly.blacksky.community/"
   ],
   "scope": "atproto transition:email rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app%23bsky_appview",
   "token_endpoint_auth_method": "none",
