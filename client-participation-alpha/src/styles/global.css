@@ -85,6 +85,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   font-size: 1.1rem;
   font-weight: bold;
   margin-bottom: 1.5rem;
+  white-space: pre-line;
 }
 
 .vote-buttons {

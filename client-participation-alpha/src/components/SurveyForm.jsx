@@ -8,7 +8,7 @@ const submitPerspectiveAPI = async (text, conversation_id) => {
 
   try {
     const resp = await PolisNet.polisPost('/comments', {
-      txt: text.replace(/\n/g, " "),
+      txt: text,
       conversation_id,
       pid,
       vote: -1,
