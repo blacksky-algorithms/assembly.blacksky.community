@@ -22,6 +22,7 @@ export default function UserIdentity({ identity }) {
         <span className="user-identity-name">{identity.displayName}</span>
         <span className="user-identity-handle">@{identity.handle}</span>
       </a>
+      {identity.blackskyTeam && <span className="blacksky-team-badge">Admin</span>}
       {identity.blackskyMember && <span className="blacksky-member-badge">Blacksky Member</span>}
       {identity.blackskyFunder && <span className="blacksky-funder-badge">Blacksky Funder</span>}
       <button className="user-identity-signout" onClick={handleSignOut}>

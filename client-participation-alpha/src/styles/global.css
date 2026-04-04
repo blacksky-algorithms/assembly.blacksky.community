@@ -478,6 +478,20 @@ a.statement-author:hover, a.user-identity-info:hover {
   flex-shrink: 0;
 }
 
+.blacksky-team-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: #000;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .blacksky-funder-badge {
   display: inline-flex;
   align-items: center;

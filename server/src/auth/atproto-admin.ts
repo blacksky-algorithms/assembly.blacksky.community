@@ -195,17 +195,23 @@ export async function checkMembershipBatch(
   }
 }
 
-// --- Open Collective Funder Check ---
+// --- Open Collective Role Check ---
 
 const OC_API_URL = "https://api.opencollective.com/graphql/v2/48bfae6881ed345f608594793c5e1bdd3fba9519";
 const OC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-let ocFunderEmails: Set<string> | null = null;
+
+interface OcRoleCache {
+  funderEmails: Set<string>;  // BACKER role
+  teamEmails: Set<string>;    // CONTRIBUTOR, ADMIN, ACCOUNTANT roles
+}
+
+let ocCache: OcRoleCache | null = null;
 let ocCacheTimestamp = 0;
 
-const OC_QUERY = `
-  query account($slug: String, $limit: Int, $offset: Int) {
+const OC_MEMBERS_QUERY = `
+  query account($slug: String, $role: MemberRole, $limit: Int, $offset: Int) {
     account(slug: $slug) {
-      members(role: BACKER, limit: $limit, offset: $offset) {
+      members(role: $role, limit: $limit, offset: $offset) {
         totalCount
         nodes {
           account {
@@ -217,57 +223,70 @@ const OC_QUERY = `
   }
 `;
 
-async function fetchOcPage(offset: number): Promise<{ emails: string[]; total: number }> {
-  const resp = await fetch(OC_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: OC_QUERY,
-      variables: { slug: "blacksky", limit: 1000, offset },
-    }),
-  });
-  const data = await resp.json();
-  const members = data?.data?.account?.members;
-  const nodes = members?.nodes || [];
-  const emails: string[] = [];
-  for (const node of nodes) {
-    for (const email of node?.account?.emails || []) {
-      emails.push(email.toLowerCase());
+async function fetchOcMembersByRole(
+  role: string,
+): Promise<Set<string>> {
+  const emails = new Set<string>();
+  let offset = 0;
+  let total = 0;
+
+  do {
+    const resp = await fetch(OC_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: OC_MEMBERS_QUERY,
+        variables: { slug: "blacksky", role, limit: 1000, offset },
+      }),
+    });
+    const data = await resp.json();
+    const members = data?.data?.account?.members;
+    for (const node of members?.nodes || []) {
+      for (const email of node?.account?.emails || []) {
+        emails.add(email.toLowerCase());
+      }
     }
-  }
-  return { emails, total: members?.totalCount || 0 };
+    total = members?.totalCount || 0;
+    offset += 1000;
+  } while (offset < total);
+
+  return emails;
 }
 
-async function refreshOcCache(): Promise<Set<string>> {
+async function refreshOcCache(): Promise<OcRoleCache> {
   const now = Date.now();
-  if (ocFunderEmails && now - ocCacheTimestamp < OC_CACHE_TTL_MS) {
-    return ocFunderEmails;
+  if (ocCache && now - ocCacheTimestamp < OC_CACHE_TTL_MS) {
+    return ocCache;
   }
 
   try {
-    const allEmails = new Set<string>();
-    let offset = 0;
-    let total = 0;
+    // Fetch all roles in parallel
+    const [backers, contributors, admins, accountants] = await Promise.all([
+      fetchOcMembersByRole("BACKER"),
+      fetchOcMembersByRole("CONTRIBUTOR"),
+      fetchOcMembersByRole("ADMIN"),
+      fetchOcMembersByRole("ACCOUNTANT"),
+    ]);
 
-    do {
-      const page = await fetchOcPage(offset);
-      for (const e of page.emails) allEmails.add(e);
-      total = page.total;
-      offset += 1000;
-    } while (offset < total);
+    const teamEmails = new Set<string>();
+    for (const e of contributors) teamEmails.add(e);
+    for (const e of admins) teamEmails.add(e);
+    for (const e of accountants) teamEmails.add(e);
 
-    ocFunderEmails = allEmails;
+    ocCache = { funderEmails: backers, teamEmails };
     ocCacheTimestamp = now;
-    logger.info(`Refreshed OC funder cache: ${allEmails.size} emails from ${total} backers`);
-    return allEmails;
+    logger.info(`Refreshed OC cache: ${backers.size} funders, ${teamEmails.size} team`);
+    return ocCache;
   } catch (err) {
-    logger.warn("Failed to fetch OC backers", err);
-    return ocFunderEmails || new Set();
+    logger.warn("Failed to fetch OC members", err);
+    return ocCache || { funderEmails: new Set(), teamEmails: new Set() };
   }
 }
 
 /**
  * GET /api/v3/auth/check-funder?email={email}
+ *
+ * Returns funder (BACKER) and team (CONTRIBUTOR/ADMIN/ACCOUNTANT) status.
  */
 export async function handle_GET_check_funder(
   req: { p: { email: string } },
@@ -276,25 +295,19 @@ export async function handle_GET_check_funder(
   const { email } = req.p;
 
   if (!email) {
-    res.status(200).json({ funder: false });
+    res.status(200).json({ funder: false, team: false });
     return;
   }
 
   try {
-    const funders = await refreshOcCache();
-    const isFunder = funders.has(email.toLowerCase());
-    res.status(200).json({ funder: isFunder });
+    const cache = await refreshOcCache();
+    const lowerEmail = email.toLowerCase();
+    res.status(200).json({
+      funder: cache.funderEmails.has(lowerEmail),
+      team: cache.teamEmails.has(lowerEmail),
+    });
   } catch (err) {
     logger.error("polis_err_check_funder", err);
-    res.status(200).json({ funder: false });
+    res.status(200).json({ funder: false, team: false });
   }
-}
-
-/**
- * Check if an email is an OC funder. Used server-side.
- */
-export async function isFunder(email: string): Promise<boolean> {
-  if (!email) return false;
-  const funders = await refreshOcCache();
-  return funders.has(email.toLowerCase());
 }
