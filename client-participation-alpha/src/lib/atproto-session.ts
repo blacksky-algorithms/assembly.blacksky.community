@@ -6,6 +6,7 @@ export interface AtprotoIdentity {
   displayName: string;
   avatarUrl: string;
   blackskyMember?: boolean;
+  blackskyFunder?: boolean;
 }
 
 export function setAtprotoIdentity(identity: AtprotoIdentity): void {

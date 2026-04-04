@@ -194,3 +194,90 @@ export async function checkMembershipBatch(
     return new Set();
   }
 }
+
+// --- Open Collective Funder Check ---
+
+const OC_API_URL = "https://api.opencollective.com/graphql/v2/48bfae6881ed345f608594793c5e1bdd3fba9519";
+const OC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+let ocFunderEmails: Set<string> | null = null;
+let ocCacheTimestamp = 0;
+
+const OC_QUERY = `
+  query account($slug: String) {
+    account(slug: $slug) {
+      members(role: BACKER, limit: 2000) {
+        nodes {
+          account {
+            emails
+          }
+        }
+      }
+    }
+  }
+`;
+
+async function refreshOcCache(): Promise<Set<string>> {
+  const now = Date.now();
+  if (ocFunderEmails && now - ocCacheTimestamp < OC_CACHE_TTL_MS) {
+    return ocFunderEmails;
+  }
+
+  try {
+    const resp = await fetch(OC_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: OC_QUERY, variables: { slug: "blacksky" } }),
+    });
+
+    const data = await resp.json();
+    const nodes = data?.data?.account?.members?.nodes || [];
+    const emails = new Set<string>();
+
+    for (const node of nodes) {
+      for (const email of node?.account?.emails || []) {
+        emails.add(email.toLowerCase());
+      }
+    }
+
+    ocFunderEmails = emails;
+    ocCacheTimestamp = now;
+    logger.info(`Refreshed OC funder cache: ${emails.size} emails`);
+    return emails;
+  } catch (err) {
+    logger.warn("Failed to fetch OC backers", err);
+    return ocFunderEmails || new Set();
+  }
+}
+
+/**
+ * GET /api/v3/auth/check-funder?email={email}
+ */
+export async function handle_GET_check_funder(
+  req: { p: { email: string } },
+  res: any
+) {
+  const { email } = req.p;
+
+  if (!email) {
+    res.status(200).json({ funder: false });
+    return;
+  }
+
+  try {
+    const funders = await refreshOcCache();
+    const isFunder = funders.has(email.toLowerCase());
+    res.status(200).json({ funder: isFunder });
+  } catch (err) {
+    logger.error("polis_err_check_funder", err);
+    res.status(200).json({ funder: false });
+  }
+}
+
+/**
+ * Check if an email is an OC funder. Used server-side.
+ */
+export async function isFunder(email: string): Promise<boolean> {
+  if (!email) return false;
+  const funders = await refreshOcCache();
+  return funders.has(email.toLowerCase());
+}

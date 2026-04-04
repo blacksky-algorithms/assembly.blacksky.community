@@ -34,9 +34,10 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
         {remaining !== undefined && (
           <span className="remaining-count">{remaining > 100 ? '100+' : remaining} remaining</span>
         )}
-        {statement.author_is_blacksky_member && (
+        {(statement.author_is_blacksky_member || statement.author_is_funder) && (
           <div className="statement-badge-row">
-            <span className="blacksky-member-badge">Blacksky Member</span>
+            {statement.author_is_blacksky_member && <span className="blacksky-member-badge">Blacksky Member</span>}
+            {statement.author_is_funder && <span className="blacksky-funder-badge">Blacksky Funder</span>}
           </div>
         )}
       </div>

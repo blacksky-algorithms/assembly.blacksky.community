@@ -39,14 +39,24 @@ import Layout from '../layouts/Layout.astro';
 
         if (statusEl) statusEl.textContent = 'Fetching profile...';
 
-        // Fetch profile and membership status in parallel
+        // Fetch profile, session (for email), membership, and funder status in parallel
         const agent = new Agent(result.session);
-        const [profile, membershipResp] = await Promise.all([
+        const [profile, sessionInfo, membershipResp] = await Promise.all([
           agent.getProfile({ actor: result.session.did }),
+          agent.com.atproto.server.getSession().catch(() => ({ data: {} })),
           fetch(`${window.location.origin}/api/v3/auth/check-membership?did=${encodeURIComponent(result.session.did)}`)
             .then(r => r.json())
             .catch(() => ({ member: false })),
         ]);
+
+        const email = sessionInfo.data?.email || '';
+
+        // Check funder status by email (after we have it)
+        const funderResp = email
+          ? await fetch(`${window.location.origin}/api/v3/auth/check-funder?email=${encodeURIComponent(email)}`)
+              .then(r => r.json())
+              .catch(() => ({ funder: false }))
+          : { funder: false };
 
         setAtprotoIdentity({
           did: result.session.did,
@@ -54,6 +64,7 @@ import Layout from '../layouts/Layout.astro';
           displayName: profile.data.displayName || profile.data.handle,
           avatarUrl: profile.data.avatar || '',
           blackskyMember: membershipResp.member || false,
+          blackskyFunder: funderResp.funder || false,
         });
 
         // Redirect back to the conversation
