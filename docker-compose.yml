@@ -31,6 +31,7 @@ services:
       dockerfile: Dockerfile
       args:
         - PUBLIC_SERVICE_URL=${PUBLIC_SERVICE_URL}
+        - INTERNAL_SERVICE_URL=${INTERNAL_SERVICE_URL}
         - OIDC_CACHE_KEY_PREFIX=${OIDC_CACHE_KEY_PREFIX}
         - OIDC_CACHE_KEY_ID_TOKEN_SUFFIX=${OIDC_CACHE_KEY_ID_TOKEN_SUFFIX}
     container_name: client-participation-alpha
