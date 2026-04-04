@@ -69,7 +69,7 @@ import {
 } from "./src/routes/api/v3/feeds";
 import { handle_GET_reportExport } from "./src/routes/export";
 import { handle_GET_reportNarrative } from "./src/routes/reportNarrative";
-import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder, handle_GET_check_oss_supporter } from "./src/auth/atproto-admin";
+import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder, handle_GET_check_oss_supporter, handle_GET_badges, handle_POST_badges, handle_DELETE_badges } from "./src/auth/atproto-admin";
 import {
   handle_POST_auth_deregister_jwt,
   handle_POST_joinWithInvite,
@@ -455,6 +455,30 @@ helpersInitialized.then(
       want("handle", getStringLimitLength(1, 253), assignToP),
       want("email", getStringLimitLength(1, 500), assignToP),
       handle_GET_check_oss_supporter
+    );
+
+    // Badge admin API
+    app.get(
+      "/api/v3/admin/badges",
+      moveToBody,
+      need("did", getStringLimitLength(1, 253), assignToP),
+      handle_GET_badges
+    );
+
+    app.post(
+      "/api/v3/admin/badges",
+      need("did", getStringLimitLength(1, 253), assignToP),
+      need("badge", getStringLimitLength(1, 50), assignToP),
+      need("is_granted", getBool, assignToP),
+      handle_POST_badges
+    );
+
+    app.delete(
+      "/api/v3/admin/badges",
+      moveToBody,
+      need("did", getStringLimitLength(1, 253), assignToP),
+      need("badge", getStringLimitLength(1, 50), assignToP),
+      handle_DELETE_badges
     );
 
     app.get(

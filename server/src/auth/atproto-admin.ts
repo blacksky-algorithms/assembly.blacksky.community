@@ -335,3 +335,124 @@ export async function handle_GET_check_oss_supporter(
   const supporter = isOssSupporter(did, handle, email);
   res.status(200).json({ supporter });
 }
+
+// --- Badge Overrides Admin API ---
+
+const VALID_BADGES = ["blacksky_member", "blacksky_funder", "blacksky_team", "oss_supporter"];
+
+/**
+ * GET /api/v3/admin/badges?did={did}
+ * Returns all badge overrides for a DID.
+ */
+export async function handle_GET_badges(
+  req: { p: { did: string } },
+  res: any
+) {
+  const { did } = req.p;
+  if (!did) {
+    failJson(res, 400, "polis_err_badges_missing_did");
+    return;
+  }
+
+  try {
+    const rows = (await pg.queryP(
+      "SELECT badge, is_granted FROM badge_overrides WHERE did = $1",
+      [did]
+    )) as any[];
+    res.status(200).json({ did, overrides: rows });
+  } catch (err) {
+    logger.error("polis_err_get_badges", err);
+    failJson(res, 500, "polis_err_get_badges");
+  }
+}
+
+/**
+ * POST /api/v3/admin/badges
+ * Grant or revoke a badge for a DID.
+ * Body: { did, badge, is_granted }
+ * is_granted=true → force badge on
+ * is_granted=false → force badge off (prevents automatic re-addition)
+ */
+export async function handle_POST_badges(
+  req: { p: { did: string; badge: string; is_granted: boolean } },
+  res: any
+) {
+  const { did, badge, is_granted } = req.p;
+
+  if (!did || !badge) {
+    failJson(res, 400, "polis_err_badges_missing_params");
+    return;
+  }
+
+  if (!VALID_BADGES.includes(badge)) {
+    failJson(res, 400, `polis_err_badges_invalid_badge: ${badge}. Valid: ${VALID_BADGES.join(", ")}`);
+    return;
+  }
+
+  try {
+    await pg.queryP(
+      `INSERT INTO badge_overrides (did, badge, is_granted)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (did, badge) DO UPDATE SET is_granted = $3`,
+      [did, badge, is_granted]
+    );
+
+    logger.info("Badge override set", { did, badge, is_granted });
+    res.status(200).json({ did, badge, is_granted });
+  } catch (err) {
+    logger.error("polis_err_post_badges", err);
+    failJson(res, 500, "polis_err_post_badges");
+  }
+}
+
+/**
+ * DELETE /api/v3/admin/badges?did={did}&badge={badge}
+ * Remove a badge override (returns to automatic detection).
+ */
+export async function handle_DELETE_badges(
+  req: { p: { did: string; badge: string } },
+  res: any
+) {
+  const { did, badge } = req.p;
+
+  if (!did || !badge) {
+    failJson(res, 400, "polis_err_badges_missing_params");
+    return;
+  }
+
+  try {
+    await pg.queryP(
+      "DELETE FROM badge_overrides WHERE did = $1 AND badge = $2",
+      [did, badge]
+    );
+
+    logger.info("Badge override removed", { did, badge });
+    res.status(200).json({ did, badge, removed: true });
+  } catch (err) {
+    logger.error("polis_err_delete_badges", err);
+    failJson(res, 500, "polis_err_delete_badges");
+  }
+}
+
+/**
+ * Check badge overrides for a DID. Returns a map of badge → is_granted.
+ * Used during login to merge with automatic detection.
+ */
+export async function getBadgeOverrides(
+  did: string
+): Promise<Record<string, boolean>> {
+  try {
+    const rows = (await pg.queryP(
+      "SELECT badge, is_granted FROM badge_overrides WHERE did = $1",
+      [did]
+    )) as any[];
+
+    const overrides: Record<string, boolean> = {};
+    for (const row of rows) {
+      overrides[row.badge] = row.is_granted;
+    }
+    return overrides;
+  } catch {
+    return {};
+  }
+}

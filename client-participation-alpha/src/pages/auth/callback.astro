@@ -51,25 +51,41 @@ import Layout from '../layouts/Layout.astro';
 
         const email = sessionInfo.data?.email || '';
 
-        // Check funder/team and OSS supporter status in parallel
-        const [ocResp, ossResp] = await Promise.all([
+        // Check all badge sources in parallel
+        const did = result.session.did;
+        const handle = profile.data.handle;
+        const [ocResp, ossResp, overridesResp] = await Promise.all([
           email
             ? fetch(`${window.location.origin}/api/v3/auth/check-funder?email=${encodeURIComponent(email)}`)
                 .then(r => r.json()).catch(() => ({ funder: false, team: false }))
             : { funder: false, team: false },
-          fetch(`${window.location.origin}/api/v3/auth/check-oss-supporter?did=${encodeURIComponent(result.session.did)}&handle=${encodeURIComponent(profile.data.handle)}${email ? `&email=${encodeURIComponent(email)}` : ''}`)
+          fetch(`${window.location.origin}/api/v3/auth/check-oss-supporter?did=${encodeURIComponent(did)}&handle=${encodeURIComponent(handle)}${email ? `&email=${encodeURIComponent(email)}` : ''}`)
             .then(r => r.json()).catch(() => ({ supporter: false })),
+          fetch(`${window.location.origin}/api/v3/admin/badges?did=${encodeURIComponent(did)}`)
+            .then(r => r.json()).catch(() => ({ overrides: [] })),
         ]);
 
+        // Build override map: badge name → forced value
+        const overrides = {};
+        for (const o of overridesResp.overrides || []) {
+          overrides[o.badge] = o.is_granted;
+        }
+
+        // Apply: override wins over automatic, false override prevents badge
+        const applyBadge = (auto, overrideKey) => {
+          if (overrideKey in overrides) return overrides[overrideKey];
+          return auto;
+        };
+
         setAtprotoIdentity({
-          did: result.session.did,
-          handle: profile.data.handle,
-          displayName: profile.data.displayName || profile.data.handle,
+          did,
+          handle,
+          displayName: profile.data.displayName || handle,
           avatarUrl: profile.data.avatar || '',
-          blackskyMember: membershipResp.member || false,
-          blackskyFunder: ocResp.funder || false,
-          blackskyTeam: ocResp.team || false,
-          ossSupporter: ossResp.supporter || false,
+          blackskyMember: applyBadge(membershipResp.member || false, 'blacksky_member'),
+          blackskyFunder: applyBadge(ocResp.funder || false, 'blacksky_funder'),
+          blackskyTeam: applyBadge(ocResp.team || false, 'blacksky_team'),
+          ossSupporter: applyBadge(ossResp.supporter || false, 'oss_supporter'),
         });
 
         // Redirect back to the conversation

@@ -98,6 +98,9 @@ h1 {
 }
 .statement-badge-row {
   width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 .remaining-count {
   font-size: 0.8rem;
@@ -469,11 +472,11 @@ a.statement-author:hover, a.user-identity-info:hover {
   align-items: center;
   background-color: #8B8BFF;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  margin-left: 0.4rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.3rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -483,11 +486,11 @@ a.statement-author:hover, a.user-identity-info:hover {
   align-items: center;
   background-color: #000;
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  margin-left: 0.4rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.3rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -497,11 +500,11 @@ a.statement-author:hover, a.user-identity-info:hover {
   align-items: center;
   background-color: #D2FC51;
   color: black;
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  margin-left: 0.4rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.3rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -511,11 +514,11 @@ a.statement-author:hover, a.user-identity-info:hover {
   align-items: center;
   background-color: #FF6B35;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  margin-left: 0.4rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.3rem;
   line-height: 1;
   flex-shrink: 0;
 }
