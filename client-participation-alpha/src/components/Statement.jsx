@@ -87,6 +87,8 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
         </p>
       )}
     </div>
+    <div className="stack-layer-1"></div>
+    <div className="stack-layer-2"></div>
     </div>
   );
 }

@@ -50,44 +50,41 @@ h1 {
   margin-bottom: 2rem;
 }
 
-/* Statement Card — stacked card look */
-.statement-card {
-  border: 1px solid #ddd;
-  border-left: 3px solid #ddd;
-  border-radius: 2px;
-  padding: 1.5rem;
-  margin-bottom: 0;
-  text-align: left;
-  background: #fff;
-  position: relative;
-}
+/* Statement Card — stacked card look (3 layered divs like the old client) */
 .statement-card-stack {
-  margin-bottom: 2rem;
   position: relative;
+  margin-bottom: -20px;
 }
-.statement-card-stack::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  right: 0;
-  bottom: -4px;
-  height: 4px;
-  border: 1px solid #e5e5e5;
-  border-top: none;
-  border-radius: 0 0 2px 2px;
-  background: #f8f8f8;
+.statement-card {
+  background-color: #fff;
+  border: 1px solid lightgray;
+  border-radius: 5px;
+  padding: 1.5rem;
+  text-align: left;
+  position: relative;
+  z-index: 3;
 }
-.statement-card-stack::after {
-  content: '';
-  position: absolute;
-  left: 6px;
-  right: 0;
-  bottom: -8px;
-  height: 4px;
-  border: 1px solid #eee;
-  border-top: none;
-  border-radius: 0 0 2px 2px;
-  background: #f3f3f3;
+.stack-layer-1 {
+  min-height: 20px;
+  position: relative;
+  top: -16px;
+  z-index: 2;
+  margin: 0 auto;
+  width: 99%;
+  background-color: #fff;
+  border: 1px solid lightgray;
+  border-radius: 5px;
+}
+.stack-layer-2 {
+  min-height: 20px;
+  position: relative;
+  top: -32px;
+  z-index: 1;
+  margin: 0 auto;
+  width: 98%;
+  background-color: #fff;
+  border: 1px solid lightgray;
+  border-radius: 5px;
 }
 .statement-header {
   display: flex;
