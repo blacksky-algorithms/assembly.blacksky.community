@@ -27,9 +27,58 @@ import Account from './components/conversations-and-account/account'
 import Integrate from './components/conversations-and-account/integrate'
 
 import MainLayout from './components/main-layout'
-import { getAtprotoIdentity } from './util/atproto-oauth'
+import { getAtprotoIdentity, getOAuthClient, setAtprotoIdentity } from './util/atproto-oauth'
+import { Agent } from '@atproto/api'
+import URLs from './util/url'
 
 const AUTH_LOADING_TIMEOUT = 3000
+const ADMIN_TOKEN_KEY = 'atproto_admin_token'
+
+// Check if current URL has OAuth callback params (state + code in hash or query)
+function hasOAuthParams() {
+  const hash = window.location.hash
+  const search = window.location.search
+  return (hash.includes('state=') || search.includes('state=')) &&
+         (hash.includes('code=') || search.includes('code='))
+}
+
+async function processOAuthCallback() {
+  const client = getOAuthClient()
+  const result = await client.init()
+  if (!result?.session) return false
+
+  const agent = new Agent(result.session)
+  const [profile, sessionInfo] = await Promise.all([
+    agent.getProfile({ actor: result.session.did }),
+    agent.com.atproto.server.getSession().catch(() => ({ data: {} }))
+  ])
+
+  const identity = {
+    did: result.session.did,
+    handle: profile.data.handle,
+    displayName: profile.data.displayName || profile.data.handle,
+    avatarUrl: profile.data.avatar || ''
+  }
+
+  const resp = await fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...identity, email: sessionInfo.data?.email || null })
+  })
+
+  if (!resp.ok) throw new Error(`Server login failed: ${resp.status}`)
+  const { token } = await resp.json()
+
+  setAtprotoIdentity(identity)
+  localStorage.setItem(ADMIN_TOKEN_KEY, token)
+
+  // Clean up hash fragment
+  if (window.location.hash) {
+    window.history.replaceState(null, '', window.location.pathname)
+  }
+
+  return true
+}
 
 const ProtectedRoute = ({ isAuthed, isLoading }) => {
   const [loadingTimeout, setLoadingTimeout] = React.useState(false)
@@ -73,11 +122,23 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check atproto identity on mount
+  // Check atproto identity on mount, process OAuth callback if returning from auth
   useEffect(() => {
-    const identity = getAtprotoIdentity()
-    setIsAuthenticated(identity !== null)
-    setIsLoading(false)
+    if (hasOAuthParams()) {
+      processOAuthCallback()
+        .then((success) => {
+          setIsAuthenticated(success)
+          setIsLoading(false)
+        })
+        .catch((err) => {
+          console.error('OAuth callback failed:', err)
+          setIsLoading(false)
+        })
+    } else {
+      const identity = getAtprotoIdentity()
+      setIsAuthenticated(identity !== null)
+      setIsLoading(false)
+    }
   }, [])
 
   const [sidebarState, setSidebarState] = useState(() => {
