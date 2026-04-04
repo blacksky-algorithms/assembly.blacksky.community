@@ -414,13 +414,28 @@ a.statement-author:hover, a.user-identity-info:hover {
 /* User Identity Display */
 .user-identity {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background-color: #fafafa;
+}
+.user-identity-content {
+  flex-grow: 1;
+  min-width: 0;
+}
+.user-identity-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.user-identity-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
 }
 .user-identity-avatar {
   width: 40px;

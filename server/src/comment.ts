@@ -3,7 +3,8 @@ import _ from "underscore";
 const { Translate } = require("@google-cloud/translate").v2;
 
 import { GetCommentsParams, ConversationInfo } from "./d";
-import { checkMembershipBatch } from "./auth/atproto-admin";
+import { checkMembershipBatch, getBadgeOverrides } from "./auth/atproto-admin";
+import { isOssSupporter } from "./auth/github-supporters";
 import { getConversationInfo } from "./conversation";
 import { MPromise } from "./utils/metered";
 import Config from "./config";
@@ -120,20 +121,32 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
             [o.zid, pids]
           ) as any[];
 
-          // Batch check membership for all author DIDs
+          // Batch check membership and overrides for all author DIDs
           const authorDids = xidRows.filter((r: any) => r.xid).map((r: any) => r.xid);
-          const memberDids = await checkMembershipBatch(authorDids);
+          const [memberDids, ...overridesArr] = await Promise.all([
+            checkMembershipBatch(authorDids),
+            ...authorDids.map((d: string) => getBadgeOverrides(d)),
+          ]);
+
+          const overridesMap: Record<string, Record<string, boolean>> = {};
+          authorDids.forEach((d: string, i: number) => {
+            overridesMap[d] = overridesArr[i] as Record<string, boolean>;
+          });
 
           for (const row of xidRows) {
             if (row.xid) {
+              const ov = overridesMap[row.xid] || {};
+              const apply = (auto: boolean, key: string) =>
+                key in ov ? ov[key] : auto;
+
               authorMap[row.pid] = {
                 author_xid: row.xid,
                 author_name: row.x_name || "",
                 author_avatar: row.x_profile_image_url || "",
-                author_is_blacksky_member: memberDids.has(row.xid),
-                author_is_funder: row.is_funder || false,
-                author_is_team: row.is_team || false,
-                author_is_oss_supporter: row.is_oss_supporter || false,
+                author_is_blacksky_member: apply(memberDids.has(row.xid), "blacksky_member"),
+                author_is_funder: apply(false, "blacksky_funder"),
+                author_is_team: apply(false, "blacksky_team"),
+                author_is_oss_supporter: apply(isOssSupporter(row.xid), "oss_supporter"),
               };
             }
           }
