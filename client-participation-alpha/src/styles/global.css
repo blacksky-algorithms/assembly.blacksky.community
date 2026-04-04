@@ -1,5 +1,5 @@
 body {
-  font-family: sans-serif;
+  font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: #f7f7f7;
   color: #333;
   margin: 0;
@@ -7,6 +7,11 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: #D2FC51;
+  color: black;
 }
 .container {
   max-width: 800px;
@@ -23,38 +28,77 @@ body {
 .blacksky-logo-footer {
   display: block;
   margin: 0 auto 1rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.blacksky-logo-footer:hover {
+  opacity: 0.7;
 }
 h1 {
   font-size: 1.75rem;
   margin: 0;
 }
 .description {
-  color: #666;
+  color: #6A6A6A;
   margin-bottom: 2rem;
 }
 .conversation-intro {
-  font-size: 16px;
+  font-size: 15px;
   text-align: left;
   font-style: italic;
-  font-family: "times";
-  color: #555;
+  color: #6A6A6A;
   margin-bottom: 2rem;
 }
 
+/* Statement Card — stacked card look */
 .statement-card {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   text-align: left;
+  background: #fff;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.statement-card::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: -6px;
+  bottom: -6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  z-index: -1;
+}
+.statement-card::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: -12px;
+  bottom: -12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #f5f5f5;
+  z-index: -2;
 }
 .statement-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  font-size: 16px;
-  color: #666;
+  font-size: 14px;
+  color: #6A6A6A;
+  gap: 0.5rem;
+}
+.remaining-count {
+  font-size: 0.8rem;
+  color: #9C9E9E;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .anonymous-user, .statement-author {
   display: flex;
@@ -73,6 +117,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   background-color: #eee;
   border-radius: 50%;
   margin-right: 0.5rem;
+  flex-shrink: 0;
 }
 .statement-author-avatar {
   width: 24px;
@@ -80,43 +125,67 @@ a.statement-author:hover, a.user-identity-info:hover {
   border-radius: 50%;
   margin-right: 0.5rem;
   object-fit: cover;
+  flex-shrink: 0;
 }
 .statement-text {
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 600;
   margin-bottom: 1.5rem;
   white-space: pre-line;
+  line-height: 1.5;
 }
 
 .vote-buttons {
   display: flex;
-  justify-content: space-between;
+  gap: 0.75rem;
 }
 .vote-button {
-  padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 20px;
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
   background-color: transparent;
   cursor: pointer;
-  font-size: 16px;
+  font-family: 'Rubik', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.vote-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.vote-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .agree {
-  color: #28a745;
-  border-color: #28a745;
+  color: #8B8BFF;
+  border-color: #8B8BFF;
+}
+.agree:hover:not(:disabled) {
+  background-color: rgba(139, 139, 255, 0.08);
 }
 .disagree {
-  color: #dc3545;
-  border-color: #dc3545;
+  color: #F40B42;
+  border-color: #F40B42;
+}
+.disagree:hover:not(:disabled) {
+  background-color: rgba(244, 11, 66, 0.06);
 }
 .pass {
-  color: #6c757d;
+  color: #9C9E9E;
+  border-color: #ddd;
+}
+.pass:hover:not(:disabled) {
+  background-color: rgba(0,0,0,0.03);
 }
 
 .guidelines {
   text-align: left;
   margin-bottom: 2rem;
-  font-size: 16px;
-  color: #555;
+  font-size: 15px;
+  color: #6A6A6A;
   font-style: italic;
 }
 .guidelines h2 {
@@ -144,15 +213,21 @@ a.statement-author:hover, a.user-identity-info:hover {
   border: 1px solid #ddd;
   border-radius: 8px;
   resize: none;
-  font-family: sans-serif;
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.95rem;
   box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.submit-form textarea:focus {
+  outline: none;
+  border-color: #8B8BFF;
 }
 .char-counter {
   position: absolute;
   bottom: 12px;
   right: 12px;
   font-size: 0.8rem;
-  color: #6c757d;
+  color: #9C9E9E;
   background-color: rgba(255, 255, 255, 0.7);
   padding: 2px 5px;
   border-radius: 4px;
@@ -164,8 +239,18 @@ a.statement-author:hover, a.user-identity-info:hover {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   cursor: pointer;
+  font-family: 'Rubik', sans-serif;
   font-size: 1rem;
+  font-weight: 600;
   margin-left: 1rem;
+  transition: background-color 0.2s;
+}
+.submit-button:hover {
+  background-color: #7a7aee;
+}
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .email-subscribe-container {
@@ -174,7 +259,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   padding: 1.5rem 2rem;
   margin-bottom: 2rem;
   text-align: center;
-  background-color: #f9f9f9;
+  background-color: #fafafa;
 }
 .email-subscribe-container h2 {
   margin-top: 0;
@@ -191,17 +276,22 @@ a.statement-author:hover, a.user-identity-info:hover {
   padding: 0.75rem;
   border: 1px solid #ccc;
   border-radius: 8px;
+  font-family: 'Rubik', sans-serif;
   font-size: 1rem;
+}
+.email-subscribe-form input:focus {
+  outline: none;
+  border-color: #8B8BFF;
 }
 
 .error-message,
 .vote-error,
 .subscribe-error,
 .comment-error {
-  border: 1px solid #dc3545;
+  border: 1px solid #F40B42;
   border-radius: 8px;
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: rgba(244, 11, 66, 0.06);
+  color: #F40B42;
   text-align: center;
 }
 .error-message {
@@ -209,7 +299,7 @@ a.statement-author:hover, a.user-identity-info:hover {
 }
 .error-message h2 {
   margin-top: 0;
-  color: #721c24;
+  color: #F40B42;
 }
 .vote-error, .subscribe-error {
   margin-top: 1rem;
@@ -229,7 +319,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   font-weight: bold;
   line-height: 1;
   color: white;
-  background-color: #d9534f;
+  background-color: #F40B42;
   border-radius: 4px;
   text-transform: uppercase;
   vertical-align: middle;
@@ -241,16 +331,17 @@ a.statement-author:hover, a.user-identity-info:hover {
 .footer-links {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: #666;
+  color: #9C9E9E;
 }
 .footer-links a {
-  color: #666;
+  color: #9C9E9E;
   text-decoration: none;
   margin: 0 0.5rem;
 }
 .footer-links a:hover {
-  text-decoration: underline;
+  color: #8B8BFF;
 }
+
 /* Atproto Login */
 .atproto-login {
   border: 1px solid #ddd;
@@ -258,7 +349,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   padding: 2rem;
   margin-bottom: 2rem;
   text-align: center;
-  background-color: #f9f9f9;
+  background-color: #fafafa;
 }
 .atproto-login h2 {
   margin-top: 0;
@@ -266,7 +357,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   font-size: 1.2rem;
 }
 .atproto-login-desc {
-  color: #666;
+  color: #6A6A6A;
   margin-bottom: 1.5rem;
   font-size: 0.95rem;
 }
@@ -279,7 +370,12 @@ a.statement-author:hover, a.user-identity-info:hover {
   padding: 0.75rem;
   border: 1px solid #ccc;
   border-radius: 8px;
+  font-family: 'Rubik', sans-serif;
   font-size: 1rem;
+}
+.atproto-login-form input:focus {
+  outline: none;
+  border-color: #8B8BFF;
 }
 .atproto-login-form button {
   background-color: #8B8BFF;
@@ -288,15 +384,21 @@ a.statement-author:hover, a.user-identity-info:hover {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   cursor: pointer;
+  font-family: 'Rubik', sans-serif;
   font-size: 1rem;
+  font-weight: 600;
   white-space: nowrap;
+  transition: background-color 0.2s;
+}
+.atproto-login-form button:hover {
+  background-color: #7a7aee;
 }
 .atproto-login-form button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 .atproto-login-error {
-  color: #dc3545;
+  color: #F40B42;
   margin-top: 0.75rem;
   font-size: 0.9rem;
 }
@@ -337,7 +439,7 @@ a.statement-author:hover, a.user-identity-info:hover {
 }
 .user-identity-handle {
   font-size: 0.8rem;
-  color: #666;
+  color: #9C9E9E;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -345,15 +447,15 @@ a.statement-author:hover, a.user-identity-info:hover {
 .user-identity-signout {
   background: none;
   border: none;
-  color: #666;
+  color: #9C9E9E;
   cursor: pointer;
+  font-family: 'Rubik', sans-serif;
   font-size: 0.85rem;
   padding: 0.25rem 0.5rem;
   flex-shrink: 0;
 }
 .user-identity-signout:hover {
-  color: #dc3545;
-  text-decoration: underline;
+  color: #F40B42;
 }
 
 /* Blacksky Member Badge */
@@ -368,6 +470,7 @@ a.statement-author:hover, a.user-identity-info:hover {
   border-radius: 4px;
   margin-left: 0.4rem;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .importance-container {
@@ -377,15 +480,17 @@ a.statement-author:hover, a.user-identity-info:hover {
   margin-top: 1rem;
   margin-bottom: 1rem;
   gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #9C9E9E;
 }
 .info-icon {
   cursor: pointer;
-  fill: #666;
+  fill: #9C9E9E;
 }
 .importance-desc {
   font-size: 0.9rem;
-  color: #555;
-  background-color: #f0f0f0;
+  color: #6A6A6A;
+  background-color: #f5f5f5;
   border-radius: 8px;
   padding: 0.75rem;
   margin: 0.75rem 0 0 0;

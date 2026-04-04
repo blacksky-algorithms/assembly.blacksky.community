@@ -8,7 +8,7 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
     onVote(voteType, statement.tid);
   };
 
-  const passUnsureText = s.pass;
+  const remaining = statement.remaining;
 
   return (
     <div className="statement-card">
@@ -33,6 +33,9 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
             <span>{s.anonPerson || 'Anonymous'} {s.x_wrote || 'wrote:'}</span>
           </div>
         )}
+        {remaining !== undefined && (
+          <span className="remaining-count">{remaining > 100 ? '100+' : remaining} remaining</span>
+        )}
       </div>
       <p className="statement-text">{statement.txt}</p>
 
@@ -40,17 +43,17 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
         <label htmlFor="important">
           {s.importantCheckbox || 'Mark as important'}
         </label>
-        <input 
-          id="important" 
-          type="checkbox" 
-          onChange={() => setIsStatmentImportant(prev => !prev)} 
+        <input
+          id="important"
+          type="checkbox"
+          onChange={() => setIsStatmentImportant(prev => !prev)}
           checked={isStatementImportant}
         />
-        <svg 
-          onClick={() => setShowImportanceDesc(prev => !prev)} 
-          viewBox="0 0 512 512" 
-          xmlns="http://www.w3.org/2000/svg" 
-          height="17px" 
+        <svg
+          onClick={() => setShowImportanceDesc(prev => !prev)}
+          viewBox="0 0 512 512"
+          xmlns="http://www.w3.org/2000/svg"
+          height="17px"
           width="17px"
           className="info-icon"
         >
@@ -66,13 +69,13 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
 
       <div className="vote-buttons">
         <button className="vote-button agree" onClick={() => handleVoteClick(-1)} disabled={isVoting}>
-          {isVoting ? s.voting : `✔ ${s.agree}`}
+          {isVoting ? s.voting : s.agree}
         </button>
         <button className="vote-button disagree" onClick={() => handleVoteClick(1)} disabled={isVoting}>
-          {isVoting ? s.voting : `✘ ${s.disagree}`}
+          {isVoting ? s.voting : s.disagree}
         </button>
         <button className="vote-button pass" onClick={() => handleVoteClick(0)} disabled={isVoting}>
-          {isVoting ? s.voting : passUnsureText}
+          {isVoting ? s.voting : s.pass}
         </button>
       </div>
       {voteError && (
