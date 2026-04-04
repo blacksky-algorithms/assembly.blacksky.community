@@ -174,7 +174,17 @@ async function _handleUserIdentification(
     const existingXidRecords = await getXidRecord(req.p.xid, zid);
 
     if (existingXidRecords && existingXidRecords.length > 0) {
-      // XID user already exists
+      // XID user already exists — update profile info if provided
+      if (req.p.x_name || req.p.x_profile_image_url) {
+        await createXidRecordByZid(
+          zid,
+          existingXidRecords[0].uid,
+          req.p.xid,
+          req.p.x_profile_image_url,
+          req.p.x_name,
+          req.p.x_email
+        );
+      }
       return existingXidRecords[0].uid;
     }
 
