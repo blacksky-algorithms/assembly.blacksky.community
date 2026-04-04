@@ -23,7 +23,7 @@ const submitVoteAndGetNextCommentAPI = async (vote, conversation_id, high_priori
 };
 
 
-export default function Survey({ initialStatement, s, conversation_id }) {
+export default function Survey({ initialStatement, s, conversation_id, importanceEnabled }) {
   const [statement, setStatement] = useState(initialStatement);
   const [isFetchingNext, setIsFetchingNext] = useState(false);
   const [isStatementImportant, setIsStatmentImportant] = useState(false);
@@ -119,6 +119,7 @@ export default function Survey({ initialStatement, s, conversation_id }) {
           onVote={handleVote}
           isVoting={isFetchingNext}
           s={s}
+          importanceEnabled={importanceEnabled}
           isStatementImportant={isStatementImportant}
           setIsStatmentImportant={setIsStatmentImportant}
           voteError={voteError}

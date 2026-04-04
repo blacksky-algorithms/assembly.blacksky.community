@@ -13,6 +13,7 @@ export default function ConversationGate({
   initialStatement,
   authNeededToVote,
   authNeededToWrite,
+  importanceEnabled,
   s,
   introHtml,
 }) {
@@ -77,6 +78,7 @@ export default function ConversationGate({
       <Survey
         initialStatement={statement}
         conversation_id={conversation_id}
+        importanceEnabled={importanceEnabled}
         s={s}
       />
 
