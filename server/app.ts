@@ -69,7 +69,7 @@ import {
 } from "./src/routes/api/v3/feeds";
 import { handle_GET_reportExport } from "./src/routes/export";
 import { handle_GET_reportNarrative } from "./src/routes/reportNarrative";
-import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder } from "./src/auth/atproto-admin";
+import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder, handle_GET_check_oss_supporter } from "./src/auth/atproto-admin";
 import {
   handle_POST_auth_deregister_jwt,
   handle_POST_joinWithInvite,
@@ -446,6 +446,15 @@ helpersInitialized.then(
       moveToBody,
       want("email", getStringLimitLength(1, 500), assignToP),
       handle_GET_check_funder
+    );
+
+    app.get(
+      "/api/v3/auth/check-oss-supporter",
+      moveToBody,
+      want("did", getStringLimitLength(1, 253), assignToP),
+      want("handle", getStringLimitLength(1, 253), assignToP),
+      want("email", getStringLimitLength(1, 500), assignToP),
+      handle_GET_check_oss_supporter
     );
 
     app.get(

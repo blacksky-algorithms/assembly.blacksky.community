@@ -46,7 +46,7 @@ export default function Survey({ initialStatement, s, conversation_id }) {
 
         if (!cancelled) {
           if (resp && typeof resp.tid !== 'undefined') {
-            const mapped = { tid: resp.tid, txt: resp.txt, remaining: resp.remaining, author_name: resp.author_name, author_avatar: resp.author_avatar, author_xid: resp.author_xid, author_is_blacksky_member: resp.author_is_blacksky_member, author_is_funder: resp.author_is_funder, author_is_team: resp.author_is_team };
+            const mapped = { tid: resp.tid, txt: resp.txt, remaining: resp.remaining, author_name: resp.author_name, author_avatar: resp.author_avatar, author_xid: resp.author_xid, author_is_blacksky_member: resp.author_is_blacksky_member, author_is_funder: resp.author_is_funder, author_is_team: resp.author_is_team, author_is_oss_supporter: resp.author_is_oss_supporter };
             if (!statement || mapped.tid !== statement.tid) {
               setStatement(mapped);
             }

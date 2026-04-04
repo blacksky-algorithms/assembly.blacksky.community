@@ -107,12 +107,12 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
     .then(async function (comments: CommentRow[]): Promise<CommentRow[]> {
       // Batch-lookup author xid info for all comments
       const pids = [...new Set(comments.map((c) => c.pid).filter((p) => p !== undefined))];
-      const authorMap: Record<number, { author_xid: string; author_name: string; author_avatar: string; author_is_blacksky_member: boolean; author_is_funder: boolean; author_is_team: boolean }> = {};
+      const authorMap: Record<number, { author_xid: string; author_name: string; author_avatar: string; author_is_blacksky_member: boolean; author_is_funder: boolean; author_is_team: boolean; author_is_oss_supporter: boolean }> = {};
 
       if (pids.length > 0) {
         try {
           const xidRows = await pg.queryP(
-            `SELECT p.pid, x.xid, x.x_name, x.x_profile_image_url, x.is_funder, x.is_team
+            `SELECT p.pid, x.xid, x.x_name, x.x_profile_image_url, x.is_funder, x.is_team, x.is_oss_supporter
              FROM participants p
              LEFT JOIN xids x ON p.uid = x.uid
                AND x.owner = (SELECT org_id FROM conversations WHERE zid = $1)
@@ -133,6 +133,7 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
                 author_is_blacksky_member: memberDids.has(row.xid),
                 author_is_funder: row.is_funder || false,
                 author_is_team: row.is_team || false,
+                author_is_oss_supporter: row.is_oss_supporter || false,
               };
             }
           }
@@ -151,6 +152,7 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
           c.author_is_blacksky_member = author.author_is_blacksky_member;
           c.author_is_funder = author.author_is_funder;
           c.author_is_team = author.author_is_team;
+          c.author_is_oss_supporter = author.author_is_oss_supporter;
         }
       });
       return comments;

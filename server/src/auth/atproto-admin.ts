@@ -311,3 +311,27 @@ export async function handle_GET_check_funder(
     res.status(200).json({ funder: false, team: false });
   }
 }
+
+// --- OSS Supporter Check ---
+
+import {
+  isOssSupporter,
+  ensureGithubCacheReady,
+} from "./github-supporters";
+
+// Kick off background cache build on module load
+ensureGithubCacheReady();
+
+/**
+ * GET /api/v3/auth/check-oss-supporter?did={did}&handle={handle}&email={email}
+ */
+export async function handle_GET_check_oss_supporter(
+  req: { p: { did?: string; handle?: string; email?: string } },
+  res: any
+) {
+  const { did, handle, email } = req.p;
+  ensureGithubCacheReady(); // Refresh if stale
+
+  const supporter = isOssSupporter(did, handle, email);
+  res.status(200).json({ supporter });
+}

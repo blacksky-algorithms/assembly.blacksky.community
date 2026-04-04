@@ -1,3 +1,4 @@
--- Track Open Collective roles on xid records
+-- Track Open Collective and GitHub roles on xid records
 ALTER TABLE xids ADD COLUMN IF NOT EXISTS is_funder BOOLEAN DEFAULT FALSE;
 ALTER TABLE xids ADD COLUMN IF NOT EXISTS is_team BOOLEAN DEFAULT FALSE;
+ALTER TABLE xids ADD COLUMN IF NOT EXISTS is_oss_supporter BOOLEAN DEFAULT FALSE;

@@ -8,6 +8,7 @@ export interface AtprotoIdentity {
   blackskyMember?: boolean;
   blackskyFunder?: boolean;
   blackskyTeam?: boolean;
+  ossSupporter?: boolean;
 }
 
 export function setAtprotoIdentity(identity: AtprotoIdentity): void {

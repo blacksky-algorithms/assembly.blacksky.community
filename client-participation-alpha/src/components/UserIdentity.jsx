@@ -25,6 +25,7 @@ export default function UserIdentity({ identity }) {
       {identity.blackskyTeam && <span className="blacksky-team-badge">Admin</span>}
       {identity.blackskyMember && <span className="blacksky-member-badge">Blacksky Member</span>}
       {identity.blackskyFunder && <span className="blacksky-funder-badge">Blacksky Funder</span>}
+      {identity.ossSupporter && <span className="oss-supporter-badge">Open Source Supporter</span>}
       <button className="user-identity-signout" onClick={handleSignOut}>
         Sign out
       </button>
