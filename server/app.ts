@@ -794,6 +794,9 @@ helpersInitialized.then(
         assignToPCustom("zid")
       ),
       want("xid", getStringLimitLength(1, 999), assignToP),
+      want("x_name", getStringLimitLength(1, 746), assignToP),
+      want("x_profile_image_url", getStringLimitLength(1, 3000), assignToP),
+      want("x_email", getStringLimitLength(1, 500), assignToP),
       resolve_pidThing("not_voted_by_pid", assignToP, "get:nextComment"),
       want("without", getArrayOfInt, assignToP),
       // preferred language of nextComment
@@ -1110,6 +1113,9 @@ helpersInitialized.then(
       ),
       denyIfNotFromWhitelistedDomain, // this seems like the easiest place to enforce the domain whitelist. The index.html is cached on cloudflare, so that's not the right place.
       want("xid", getStringLimitLength(1, 999), assignToP),
+      want("x_name", getStringLimitLength(1, 746), assignToP),
+      want("x_profile_image_url", getStringLimitLength(1, 3000), assignToP),
+      want("x_email", getStringLimitLength(1, 500), assignToP),
       ensureParticipantOptional({
         createIfMissing: false, // Don't create new participants
         issueJWT: true, // Issue JWT for existing participants
