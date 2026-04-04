@@ -195,9 +195,9 @@ async function _handleUserIdentification(
       zid,
       newUid,
       req.p.xid,
-      undefined,
-      undefined,
-      undefined
+      req.p.x_profile_image_url,
+      req.p.x_name,
+      req.p.x_email
     );
 
     return newUid;
