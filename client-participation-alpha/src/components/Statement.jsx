@@ -14,14 +14,14 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
     <div className="statement-card">
       <div className="statement-header">
         {statement.author_name ? (
-          <div className="statement-author">
+          <a className="statement-author" href={`https://blacksky.community/profile/${statement.author_xid}`} target="_blank" rel="noopener noreferrer">
             {statement.author_avatar ? (
               <img src={statement.author_avatar} alt={statement.author_name} className="statement-author-avatar" />
             ) : (
               <div className="avatar"></div>
             )}
             <span>{statement.author_name} {s.x_wrote || 'wrote:'}</span>
-          </div>
+          </a>
         ) : (
           <div className="anonymous-user">
             <div className="avatar"></div>
