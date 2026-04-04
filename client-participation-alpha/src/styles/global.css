@@ -168,11 +168,11 @@ a.statement-author:hover, a.user-identity-info:hover {
   cursor: not-allowed;
 }
 .agree {
-  color: #8B8BFF;
-  border-color: #8B8BFF;
+  color: #61C554;
+  border-color: #61C554;
 }
 .agree:hover:not(:disabled) {
-  background-color: rgba(139, 139, 255, 0.08);
+  background-color: rgba(97, 197, 84, 0.08);
 }
 .disagree {
   color: #F40B42;
