@@ -1,7 +1,7 @@
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
 
-const OAUTH_BASE_URL = process.env.OAUTH_BASE_URL || 'https://assembly.blacksky.community'
-const OAUTH_CLIENT_NAME = process.env.OAUTH_CLIENT_NAME || "Blacksky People's Assembly"
+const OAUTH_BASE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://assembly.blacksky.community'
+const OAUTH_CLIENT_NAME = "Blacksky People's Assembly"
 const OAUTH_SCOPE = 'atproto transition:email rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app%23bsky_appview'
 
 function isLoopback() {
