@@ -36,18 +36,43 @@ function getPrivateKey(): string {
   return fs.readFileSync(keyPath, "utf8");
 }
 
+export const ATPROTO_ADMIN_JWT_TYPE = "atproto_admin";
+
 function issueAdminJWT(uid: number, did: string): string {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     sub: did,
     uid,
-    iss: Config.authIssuer || "assembly.blacksky.community",
-    aud: Config.authAudience || "users",
+    type: ATPROTO_ADMIN_JWT_TYPE,
+    iss: "assembly.blacksky.community",
+    aud: "users",
     iat: now,
     exp: now + JWT_EXPIRATION_SECONDS,
   };
 
   return jwt.sign(payload, getPrivateKey(), { algorithm: JWT_ALGORITHM });
+}
+
+/**
+ * Verify an atproto admin JWT and return the payload.
+ */
+export function verifyAtprotoAdminJWT(token: string): any {
+  const keyPath = Config.jwtPublicKeyPath;
+  if (!keyPath) throw new Error("JWT_PUBLIC_KEY_PATH not configured");
+  const publicKey = fs.readFileSync(keyPath, "utf8");
+  return jwt.verify(token, publicKey, { algorithms: [JWT_ALGORITHM] });
+}
+
+/**
+ * Check if a token is an atproto admin JWT.
+ */
+export function isAtprotoAdminJWT(token: string): boolean {
+  try {
+    const decoded = jwt.decode(token) as any;
+    return decoded?.type === ATPROTO_ADMIN_JWT_TYPE;
+  } catch {
+    return false;
+  }
 }
 
 /**

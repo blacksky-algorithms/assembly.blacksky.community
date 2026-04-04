@@ -3,6 +3,10 @@ import Config from "../config";
 import jwt from "jsonwebtoken";
 import logger from "../utils/logger";
 import {
+  isAtprotoAdminJWT,
+  verifyAtprotoAdminJWT,
+} from "./atproto-admin";
+import {
   isAnonymousJWT,
   anonymousJwtValidation,
   anonymousJwtValidationOptional,
@@ -94,7 +98,24 @@ function _createHybridJwtMiddleware(
 
     try {
       // Determine which validation to use based on token type
-      if (isXidJWT(token)) {
+      if (isAtprotoAdminJWT(token)) {
+        logger.debug("Detected atproto admin JWT");
+        try {
+          const payload = verifyAtprotoAdminJWT(token);
+          // Set uid on request like OIDC flow does
+          if (assigner) {
+            assigner(req, "uid", payload.uid);
+          } else {
+            (req as any).p = (req as any).p || {};
+            (req as any).p.uid = payload.uid;
+          }
+          return next();
+        } catch (err) {
+          logger.error("Atproto admin JWT validation failed", err);
+          if (isOptional) return next();
+          return res.status(401).json({ error: "Invalid admin token" });
+        }
+      } else if (isXidJWT(token)) {
         logger.debug("Detected XID JWT, using XID validation");
 
         // Use XID JWT validation
