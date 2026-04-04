@@ -406,6 +406,17 @@ async function _ensureParticipantInternal(
       const existingXidRecords = await getXidRecord(req.p.xid, zid);
       if (existingXidRecords && existingXidRecords.length > 0) {
         uid = existingXidRecords[0].uid;
+        // Update profile info on every request
+        if (req.p.x_name || req.p.x_profile_image_url) {
+          await createXidRecordByZid(
+            zid,
+            uid,
+            req.p.xid,
+            req.p.x_profile_image_url,
+            req.p.x_name,
+            req.p.x_email
+          );
+        }
       } else if (createIfMissing) {
         // Only create new XID user if createIfMissing is true
         uid = await _handleUserIdentification(req, zid);
