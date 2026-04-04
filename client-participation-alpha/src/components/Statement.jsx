@@ -11,22 +11,20 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
   const remaining = statement.remaining;
 
   return (
+    <div className="statement-card-stack">
     <div className="statement-card">
       <div className="statement-header">
         {statement.author_name ? (
-          <>
-            <a className="statement-author" href={`https://blacksky.community/profile/${statement.author_xid}`} target="_blank" rel="noopener noreferrer">
-              <img
-                src={statement.author_avatar || ''}
-                alt={statement.author_name}
-                className="statement-author-avatar"
-                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
-              />
-              <div className="avatar" style={{ display: statement.author_avatar ? 'none' : 'block' }} />
-              <span>{statement.author_name} {s.x_wrote || 'wrote:'}</span>
-            </a>
-            {statement.author_is_blacksky_member && <span className="blacksky-member-badge">Blacksky Member</span>}
-          </>
+          <a className="statement-author" href={`https://blacksky.community/profile/${statement.author_xid}`} target="_blank" rel="noopener noreferrer">
+            <img
+              src={statement.author_avatar || ''}
+              alt={statement.author_name}
+              className="statement-author-avatar"
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+            />
+            <div className="avatar" style={{ display: statement.author_avatar ? 'none' : 'block' }} />
+            <span>{statement.author_name} {s.x_wrote || 'wrote:'}</span>
+          </a>
         ) : (
           <div className="anonymous-user">
             <div className="avatar"></div>
@@ -35,6 +33,11 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
         )}
         {remaining !== undefined && (
           <span className="remaining-count">{remaining > 100 ? '100+' : remaining} remaining</span>
+        )}
+        {statement.author_is_blacksky_member && (
+          <div className="statement-badge-row">
+            <span className="blacksky-member-badge">Blacksky Member</span>
+          </div>
         )}
       </div>
       <p className="statement-text">{statement.txt}</p>
@@ -83,6 +86,7 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
           {voteError}
         </p>
       )}
+    </div>
     </div>
   );
 }
