@@ -136,8 +136,27 @@ const App = () => {
         })
     } else {
       const identity = getAtprotoIdentity()
-      setIsAuthenticated(identity !== null)
-      setIsLoading(false)
+      if (identity && !localStorage.getItem(ADMIN_TOKEN_KEY)) {
+        // Identity exists from participation login but no admin JWT — exchange it
+        fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(identity)
+        })
+          .then(r => r.json())
+          .then(({ token }) => {
+            if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token)
+            setIsAuthenticated(true)
+            setIsLoading(false)
+          })
+          .catch(() => {
+            setIsAuthenticated(false)
+            setIsLoading(false)
+          })
+      } else {
+        setIsAuthenticated(identity !== null)
+        setIsLoading(false)
+      }
     }
   }, [])
 

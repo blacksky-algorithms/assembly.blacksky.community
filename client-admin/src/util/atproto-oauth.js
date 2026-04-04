@@ -60,7 +60,7 @@ export function getOAuthClient() {
   return oauthClient
 }
 
-const IDENTITY_KEY = 'atproto_admin_identity'
+const IDENTITY_KEY = 'atproto_identity'
 
 export function setAtprotoIdentity(identity) {
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity))
