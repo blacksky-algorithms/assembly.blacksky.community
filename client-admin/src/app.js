@@ -127,8 +127,12 @@ const App = () => {
     if (hasOAuthParams()) {
       processOAuthCallback()
         .then((success) => {
-          setIsAuthenticated(success)
-          setIsLoading(false)
+          if (success) {
+            // Reload to cleanly initialize with the new identity and admin JWT
+            window.location.replace('/')
+          } else {
+            setIsLoading(false)
+          }
         })
         .catch((err) => {
           console.error('OAuth callback failed:', err)
@@ -145,9 +149,13 @@ const App = () => {
         })
           .then(r => r.json())
           .then(({ token }) => {
-            if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token)
-            setIsAuthenticated(true)
-            setIsLoading(false)
+            if (token) {
+              localStorage.setItem(ADMIN_TOKEN_KEY, token)
+              window.location.reload()
+            } else {
+              setIsAuthenticated(false)
+              setIsLoading(false)
+            }
           })
           .catch(() => {
             setIsAuthenticated(false)
