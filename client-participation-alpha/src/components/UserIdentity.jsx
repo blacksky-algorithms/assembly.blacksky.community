@@ -19,12 +19,10 @@ export default function UserIdentity({ identity }) {
       />
       <div className="user-identity-avatar user-identity-avatar-placeholder" style={{ display: identity.avatarUrl ? 'none' : 'block' }} />
       <a className="user-identity-info" href={`https://blacksky.community/profile/${identity.did}`} target="_blank" rel="noopener noreferrer">
-        <span className="user-identity-name">
-          {identity.displayName}
-          {identity.blackskyMember && <span className="blacksky-member-badge">Blacksky Member</span>}
-        </span>
+        <span className="user-identity-name">{identity.displayName}</span>
         <span className="user-identity-handle">@{identity.handle}</span>
       </a>
+      {identity.blackskyMember && <span className="blacksky-member-badge">Blacksky Member</span>}
       <button className="user-identity-signout" onClick={handleSignOut}>
         Sign out
       </button>
