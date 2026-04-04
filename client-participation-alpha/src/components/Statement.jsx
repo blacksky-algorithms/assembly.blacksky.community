@@ -72,13 +72,13 @@ export function Statement({ statement, onVote, isVoting, s, isStatementImportant
 
       <div className="vote-buttons">
         <button className="vote-button agree" onClick={() => handleVoteClick(-1)} disabled={isVoting}>
-          {isVoting ? s.voting : s.agree}
+          {s.agree}
         </button>
         <button className="vote-button disagree" onClick={() => handleVoteClick(1)} disabled={isVoting}>
-          {isVoting ? s.voting : s.disagree}
+          {s.disagree}
         </button>
         <button className="vote-button pass" onClick={() => handleVoteClick(0)} disabled={isVoting}>
-          {isVoting ? s.voting : s.pass}
+          {s.pass}
         </button>
       </div>
       {voteError && (
