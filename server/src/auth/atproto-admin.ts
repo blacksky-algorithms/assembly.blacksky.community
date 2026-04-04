@@ -203,9 +203,10 @@ let ocFunderEmails: Set<string> | null = null;
 let ocCacheTimestamp = 0;
 
 const OC_QUERY = `
-  query account($slug: String) {
+  query account($slug: String, $limit: Int, $offset: Int) {
     account(slug: $slug) {
-      members(role: BACKER, limit: 2000) {
+      members(role: BACKER, limit: $limit, offset: $offset) {
+        totalCount
         nodes {
           account {
             emails
@@ -216,6 +217,27 @@ const OC_QUERY = `
   }
 `;
 
+async function fetchOcPage(offset: number): Promise<{ emails: string[]; total: number }> {
+  const resp = await fetch(OC_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: OC_QUERY,
+      variables: { slug: "blacksky", limit: 1000, offset },
+    }),
+  });
+  const data = await resp.json();
+  const members = data?.data?.account?.members;
+  const nodes = members?.nodes || [];
+  const emails: string[] = [];
+  for (const node of nodes) {
+    for (const email of node?.account?.emails || []) {
+      emails.push(email.toLowerCase());
+    }
+  }
+  return { emails, total: members?.totalCount || 0 };
+}
+
 async function refreshOcCache(): Promise<Set<string>> {
   const now = Date.now();
   if (ocFunderEmails && now - ocCacheTimestamp < OC_CACHE_TTL_MS) {
@@ -223,26 +245,21 @@ async function refreshOcCache(): Promise<Set<string>> {
   }
 
   try {
-    const resp = await fetch(OC_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: OC_QUERY, variables: { slug: "blacksky" } }),
-    });
+    const allEmails = new Set<string>();
+    let offset = 0;
+    let total = 0;
 
-    const data = await resp.json();
-    const nodes = data?.data?.account?.members?.nodes || [];
-    const emails = new Set<string>();
+    do {
+      const page = await fetchOcPage(offset);
+      for (const e of page.emails) allEmails.add(e);
+      total = page.total;
+      offset += 1000;
+    } while (offset < total);
 
-    for (const node of nodes) {
-      for (const email of node?.account?.emails || []) {
-        emails.add(email.toLowerCase());
-      }
-    }
-
-    ocFunderEmails = emails;
+    ocFunderEmails = allEmails;
     ocCacheTimestamp = now;
-    logger.info(`Refreshed OC funder cache: ${emails.size} emails`);
-    return emails;
+    logger.info(`Refreshed OC funder cache: ${allEmails.size} emails from ${total} backers`);
+    return allEmails;
   } catch (err) {
     logger.warn("Failed to fetch OC backers", err);
     return ocFunderEmails || new Set();
