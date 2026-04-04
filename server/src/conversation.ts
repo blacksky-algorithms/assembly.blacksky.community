@@ -29,9 +29,9 @@ async function createXidRecord(
   await pg.queryP(
     "insert into xids (owner, uid, xid, x_profile_image_url, x_name, x_email) values ($1, $2, $3, $4, $5, $6) " +
       "on conflict (owner, xid) do update set " +
-      "x_profile_image_url = coalesce(nullif(excluded.x_profile_image_url, ''), xids.x_profile_image_url), " +
-      "x_name = coalesce(nullif(excluded.x_name, ''), xids.x_name), " +
-      "x_email = coalesce(nullif(excluded.x_email, ''), xids.x_email);",
+      "x_profile_image_url = excluded.x_profile_image_url, " +
+      "x_name = excluded.x_name, " +
+      "x_email = excluded.x_email;",
     [
       ownerUid,
       uid,
