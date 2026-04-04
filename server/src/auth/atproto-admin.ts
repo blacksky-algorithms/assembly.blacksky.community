@@ -13,8 +13,10 @@ let feedgenPool: pgLib.Pool | null = null;
 
 function getFeedgenPool(): pgLib.Pool {
   if (!feedgenPool) {
+    // Strip sslmode from URL — we configure SSL via the pool options
+    const connStr = FEEDGEN_DATABASE_URL.replace(/[?&]sslmode=[^&]*/g, '');
     feedgenPool = new pgLib.Pool({
-      connectionString: FEEDGEN_DATABASE_URL,
+      connectionString: connStr,
       ssl: { rejectUnauthorized: false },
       max: 3,
     });
