@@ -25,7 +25,7 @@ const submitPerspectiveAPI = async (text, conversation_id) => {
 };
 
 
-export default function SurveyForm({ s, conversation_id }) {
+export default function SurveyForm({ s, conversation_id, conversationAt }) {
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState('');
   const [commentError, setCommentError] = useState('');
@@ -37,25 +37,27 @@ export default function SurveyForm({ s, conversation_id }) {
     const submittedText = text;
     setText('');
     try {
+      // 1. Create record in user's repo FIRST
+      let atRecord = null;
+      if (conversationAt?.uri && conversationAt?.cid) {
+        atRecord = await createStatementRecord({
+          conversationUri: conversationAt.uri,
+          conversationCid: conversationAt.cid,
+          text: submittedText,
+        });
+      }
+
+      // 2. Submit to assembly server with AT URI
       const result = await submitPerspectiveAPI(submittedText, conversation_id);
 
-      // Publish statement record to user's atproto repo (non-blocking)
-      if (result?.conversation_at_uri && result?.conversation_at_cid) {
-        createStatementRecord({
-          conversationUri: result.conversation_at_uri,
-          conversationCid: result.conversation_at_cid,
-          text: submittedText,
-        }).then(async (atRecord) => {
-          // Store the AT URI back on the server for future strongRefs
-          if (atRecord && result?.tid) {
-            await PolisNet.polisPost('/atproto/statement-record', {
-              conversation_id,
-              tid: result.tid,
-              at_uri: atRecord.uri,
-              at_cid: atRecord.cid,
-            }).catch(() => {});
-          }
-        }).catch(err => console.warn('Statement record publish failed (non-fatal):', err));
+      // 3. Store AT URI on server for future strongRefs
+      if (atRecord && result?.tid) {
+        PolisNet.polisPost('/atproto/statement-record', {
+          conversation_id,
+          tid: result.tid,
+          at_uri: atRecord.uri,
+          at_cid: atRecord.cid,
+        }).catch(() => {});
       }
 
       setFeedback(s.commentSent);

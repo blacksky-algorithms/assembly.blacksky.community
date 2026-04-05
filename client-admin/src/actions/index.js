@@ -1,6 +1,7 @@
 // Copyright (C) 2012-present, The Authors. This program is free software: you can redistribute it and/or  modify it under the terms of the GNU Affero General Public License, version 3, as published by the Free Software Foundation. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import PolisNet from '../util/net'
+import { createConversationRecord, updateConversationRecord } from '../util/atproto-records'
 
 /* ======= Types ======= */
 export const REQUEST_USER = 'REQUEST_USER'
@@ -303,11 +304,29 @@ const updateZidMetadata = (zm, field, value) => {
 }
 
 export const handleZidMetadataUpdate = (zm, field, value) => {
-  return (dispatch) => {
+  return async (dispatch) => {
     dispatch(updateZidMetadataStarted())
-    return updateZidMetadata(zm, field, value)
-      .then((res) => dispatch(updateZidMetadataSuccess(res)))
-      .catch((err) => dispatch(updateZidMetadataError(err)))
+    try {
+      const res = await updateZidMetadata(zm, field, value)
+      dispatch(updateZidMetadataSuccess(res))
+
+      // Update AT record for topic/description changes
+      if ((field === 'topic' || field === 'description') && zm.at_uri) {
+        try {
+          const updated = Object.assign({}, zm, { [field]: value })
+          await updateConversationRecord({
+            atUri: zm.at_uri,
+            topic: updated.topic,
+            description: updated.description,
+            authRequired: updated.auth_needed_to_vote,
+          })
+        } catch (atErr) {
+          console.warn('Failed to update conversation AT record:', atErr)
+        }
+      }
+    } catch (err) {
+      dispatch(updateZidMetadataError(err))
+    }
   }
 }
 
@@ -433,25 +452,38 @@ const postCreateConversation = () => {
 }
 
 export const handleCreateConversationSubmit = (history) => {
-  return (dispatch) => {
+  return async (dispatch) => {
     dispatch(createConversationStart())
-    return postCreateConversation()
-      .then(
-        (res) => {
-          dispatch(createConversationPostSuccess(res))
-          return res
-        },
-        (err) => dispatch(createConversationPostError(err))
-      )
-      .then((res) => {
-        if (history && history.push) {
-          // Use React Router navigation to avoid full page reload
-          history.push('/m/' + res.conversation_id)
-        } else {
-          // Fallback to window.location if history is not available
-          window.location = '/m/' + res.conversation_id
+    try {
+      const res = await postCreateConversation()
+      dispatch(createConversationPostSuccess(res))
+
+      // Create AT Protocol conversation record in admin's repo
+      try {
+        const atRecord = await createConversationRecord({
+          topic: res.topic || 'Untitled Conversation',
+          description: res.description,
+          authRequired: true,
+        })
+        if (atRecord) {
+          await PolisNet.polisPost('/api/v3/atproto/conversation-record', {
+            conversation_id: res.conversation_id,
+            at_uri: atRecord.uri,
+            at_cid: atRecord.cid,
+          }).catch(() => {})
         }
-      })
+      } catch (atErr) {
+        console.warn('Failed to create conversation AT record:', atErr)
+      }
+
+      if (history && history.push) {
+        history.push('/m/' + res.conversation_id)
+      } else {
+        window.location = '/m/' + res.conversation_id
+      }
+    } catch (err) {
+      dispatch(createConversationPostError(err))
+    }
   }
 }
 

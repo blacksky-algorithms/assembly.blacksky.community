@@ -24,7 +24,7 @@ const submitVoteAndGetNextCommentAPI = async (vote, conversation_id, high_priori
 };
 
 
-export default function Survey({ initialStatement, s, conversation_id, importanceEnabled }) {
+export default function Survey({ initialStatement, s, conversation_id, importanceEnabled, conversationAt }) {
   const [statement, setStatement] = useState(initialStatement);
   const [isFetchingNext, setIsFetchingNext] = useState(false);
   const [isStatementImportant, setIsStatmentImportant] = useState(false);
@@ -47,7 +47,7 @@ export default function Survey({ initialStatement, s, conversation_id, importanc
 
         if (!cancelled) {
           if (resp && typeof resp.tid !== 'undefined') {
-            const mapped = { tid: resp.tid, txt: resp.txt, remaining: resp.remaining, author_name: resp.author_name, author_avatar: resp.author_avatar, author_xid: resp.author_xid, author_is_blacksky_member: resp.author_is_blacksky_member, author_is_funder: resp.author_is_funder, author_is_team: resp.author_is_team, author_is_oss_supporter: resp.author_is_oss_supporter };
+            const mapped = { tid: resp.tid, txt: resp.txt, remaining: resp.remaining, author_name: resp.author_name, author_avatar: resp.author_avatar, author_xid: resp.author_xid, author_is_blacksky_member: resp.author_is_blacksky_member, author_is_funder: resp.author_is_funder, author_is_team: resp.author_is_team, author_is_oss_supporter: resp.author_is_oss_supporter, at_uri: resp.at_uri, at_cid: resp.at_cid };
             if (!statement || mapped.tid !== statement.tid) {
               setStatement(mapped);
             }
@@ -74,19 +74,20 @@ export default function Survey({ initialStatement, s, conversation_id, importanc
     setVoteError(null);
     
     try {
+      // 1. Create vote record in user's repo FIRST (if statement has AT URI)
+      if (statement.at_uri && statement.at_cid) {
+        await createVoteRecord({
+          statementUri: statement.at_uri,
+          statementCid: statement.at_cid,
+          value: voteType,
+        });
+      }
+
+      // 2. Submit vote to assembly server
       const vote = { vote: voteType, tid: tid };
       const result = await submitVoteAndGetNextCommentAPI(vote, conversation_id, isStatementImportant);
 
       setVoteError(null);
-
-      // Publish vote record to user's atproto repo (non-blocking)
-      if (result?.statement_at_uri && result?.statement_at_cid) {
-        createVoteRecord({
-          statementUri: result.statement_at_uri,
-          statementCid: result.statement_at_cid,
-          value: voteType,
-        }).catch(err => console.warn('Vote record publish failed (non-fatal):', err));
-      }
 
       if (result?.nextComment) {
         setStatement(result.nextComment);

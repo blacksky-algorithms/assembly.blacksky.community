@@ -2,6 +2,7 @@ import _ from "underscore";
 import { google } from "googleapis";
 import { parse } from "csv-parse/sync";
 import badwords from "badwords/object";
+import { createAnonStatementRecord } from "../auth/anon-pds";
 
 import { addParticipant } from "../participant";
 import { CommentOptions, GetCommentsParams, RequestWithP } from "../d";
@@ -428,15 +429,41 @@ async function handle_POST_comments(req: RequestWithP, res: any) {
     ) as any[];
     const convAt = convAtInfo?.[0] || {};
 
-    // 11. Build response
+    // 11. For seed/anonymous statements, create record in anon DID repo server-side
+    let commentAtUri = null;
+    let commentAtCid = null;
+    if (is_seed && convAt.at_uri && convAt.at_cid) {
+      try {
+        const anonRecord = await createAnonStatementRecord({
+          conversationUri: convAt.at_uri,
+          conversationCid: convAt.at_cid,
+          text: txt,
+        });
+        if (anonRecord) {
+          commentAtUri = anonRecord.uri;
+          commentAtCid = anonRecord.cid;
+          // Store AT URI on the comment row
+          await pg.queryP(
+            "UPDATE comments SET at_uri = $1, at_cid = $2 WHERE zid = $3 AND tid = $4",
+            [commentAtUri, commentAtCid, zid, tid]
+          );
+        }
+      } catch (err) {
+        logger.warn("Failed to create anon statement record (non-fatal)", err);
+      }
+    }
+
+    // 12. Build response
     const response: any = {
       tid,
       currentPid: pid,
       conversation_at_uri: convAt.at_uri || null,
       conversation_at_cid: convAt.at_cid || null,
+      at_uri: commentAtUri,
+      at_cid: commentAtCid,
     };
 
-    // 12. Auth token will be automatically included by attachAuthToken middleware
+    // 13. Auth token will be automatically included by attachAuthToken middleware
 
     res.json(response);
   } catch (err: any) {

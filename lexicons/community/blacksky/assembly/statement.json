@@ -21,6 +21,11 @@
             "maxGraphemes": 400,
             "description": "The statement text."
           },
+          "anonymous": {
+            "type": "boolean",
+            "description": "Whether this statement was submitted anonymously (e.g., seed statements). Anonymous statements are written to a designated service DID, not the author's personal repo.",
+            "default": false
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime"

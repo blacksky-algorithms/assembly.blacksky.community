@@ -21,6 +21,7 @@ export default function ConversationGate({
   const [checked, setChecked] = useState(false);
   const [ready, setReady] = useState(false);
   const [statement, setStatement] = useState(initialStatement);
+  const [conversationAt, setConversationAt] = useState({ uri: null, cid: null });
 
   useEffect(() => {
     const id = getAtprotoIdentity();
@@ -39,6 +40,9 @@ export default function ConversationGate({
           .then((data) => {
             if (data?.nextComment) {
               setStatement(data.nextComment);
+            }
+            if (data?.conversation?.at_uri) {
+              setConversationAt({ uri: data.conversation.at_uri, cid: data.conversation.at_cid });
             }
             setReady(true);
           })
@@ -79,10 +83,11 @@ export default function ConversationGate({
         initialStatement={statement}
         conversation_id={conversation_id}
         importanceEnabled={importanceEnabled}
+        conversationAt={conversationAt}
         s={s}
       />
 
-      <SurveyForm s={s} conversation_id={conversation_id} />
+      <SurveyForm s={s} conversation_id={conversation_id} conversationAt={conversationAt} />
     </>
   );
 }

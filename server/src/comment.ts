@@ -85,6 +85,8 @@ function getComments(o: GetCommentsParams): Promise<CommentRow[]> {
         "is_meta",
         "lang",
         "pid",
+        "at_uri",
+        "at_cid",
       ];
       if (o.moderation) {
         cols.push("velocity");
