@@ -71,6 +71,7 @@ import { handle_GET_reportExport } from "./src/routes/export";
 import { handle_GET_reportNarrative } from "./src/routes/reportNarrative";
 import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder, handle_GET_check_oss_supporter, handle_GET_badges, handle_POST_badges, handle_DELETE_badges } from "./src/auth/atproto-admin";
 import { handle_POST_conversation_record, handle_POST_statement_record } from "./src/routes/atproto-records";
+import { handle_GET_embed_conversation } from "./src/routes/embed";
 import {
   handle_POST_auth_deregister_jwt,
   handle_POST_joinWithInvite,
@@ -500,6 +501,19 @@ helpersInitialized.then(
       need("at_uri", getStringLimitLength(1, 500), assignToP),
       need("at_cid", getStringLimitLength(1, 200), assignToP),
       handle_POST_statement_record
+    );
+
+    // Embed API (CORS-enabled for blacksky.community)
+    app.get(
+      "/api/v3/embed/conversation",
+      moveToBody,
+      need(
+        "conversation_id",
+        getConversationIdFetchZid,
+        assignToPCustom("zid")
+      ),
+      need("conversation_id", getStringLimitLength(1, 1000), assignToP),
+      handle_GET_embed_conversation
     );
 
     app.get(

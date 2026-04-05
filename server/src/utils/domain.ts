@@ -115,12 +115,15 @@ function addCorsHeader(
   const isTestingMode = Config.nodeEnv === "test" || Config.isTesting;
   const isDevAndLocalhost =
     Config.isDevMode && origin && (origin.includes("localhost") || origin.includes("127.0.0.1"));
+  const isBlackskyCommunity =
+    origin && (origin.includes("blacksky.community") || origin.includes("localhost"));
 
   const shouldSkipValidation =
     Config.domainOverride || // Skip if domain override is set.
     !origin || // Skip if there's no origin header.
     isTestingMode || // Skip in test environments.
-    isDevAndLocalhost; // Skip for localhost in dev mode.
+    isDevAndLocalhost || // Skip for localhost in dev mode.
+    isBlackskyCommunity; // Always allow blacksky.community (for embeds).
 
   // If validation is not skipped, check the origin against the whitelist.
   if (!shouldSkipValidation) {
