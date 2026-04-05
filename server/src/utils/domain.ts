@@ -98,13 +98,14 @@ function addCorsHeader(
   res: ExpressResponse,
   next: (arg0?: string) => any
 ) {
-  // Determine the origin
+  // Determine the origin for domain validation
+  const requestOrigin = req.get("Origin") || "";
   let origin = "";
   if (Config.domainOverride) {
     origin = `${req.protocol}://${Config.domainOverride}`;
   } else {
     // Use Origin header first, fall back to Referer
-    const originHeader = req.get("Origin") || req.get("Referer") || "";
+    const originHeader = requestOrigin || req.get("Referer") || "";
     // Clean up the origin - remove fragment and path
     origin = originHeader
       .replace(/#.*$/, "")
@@ -138,9 +139,10 @@ function addCorsHeader(
   }
 
   // Set CORS headers
-  // Use wildcard for API paths since nginx may not forward the Origin header
+  // For API paths, use the actual request Origin header (not the domainOverride)
+  // to support cross-origin embed requests from blacksky.community
   const isApiPath = req.path?.startsWith("/api/");
-  const corsOrigin = isApiPath ? (origin || "*") : origin;
+  const corsOrigin = isApiPath && requestOrigin ? requestOrigin : origin;
   if (corsOrigin) {
     res.header("Access-Control-Allow-Origin", corsOrigin);
     res.header("Access-Control-Allow-Credentials", "true");
