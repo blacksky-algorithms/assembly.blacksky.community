@@ -265,7 +265,21 @@ async function handle_POST_votes(req: RequestWithP, res: any) {
       }
     }
 
-    // 7. Auth token will be automatically included by attachAuthToken middleware
+    // 7. Include statement AT URI/CID for vote strongRef
+    try {
+      const stmtAt = (await pg.queryP(
+        "SELECT at_uri, at_cid FROM comments WHERE zid = $1 AND tid = $2",
+        [zid, tid]
+      )) as any[];
+      if (stmtAt?.[0]) {
+        result.statement_at_uri = stmtAt[0].at_uri || null;
+        result.statement_at_cid = stmtAt[0].at_cid || null;
+      }
+    } catch {
+      // Non-fatal — client can still vote without firehose record
+    }
+
+    // 8. Auth token will be automatically included by attachAuthToken middleware
 
     finishOne(res, result);
   } catch (err) {

@@ -129,9 +129,16 @@ const ConversationConfig = () => {
         Customize the user interface
       </Heading>
 
+      <CheckboxField field="auth_needed_to_vote" label="Require Login to Vote">
+        Participants must sign in with their atproto identity to vote
+      </CheckboxField>
+
+      <CheckboxField field="auth_needed_to_write" label="Require Login to Comment">
+        Participants must sign in with their atproto identity to submit statements
+      </CheckboxField>
+
       <CheckboxField field="importance_enabled" label="Importance Enabled">
-        [EXPERIMENTAL FEATURE] Participants can see the &quot;This comment is important&quot;
-        checkbox
+        Participants can mark statements as important
       </CheckboxField>
 
       <CheckboxField field="vis_type" label="Visualization" isIntegerBool>

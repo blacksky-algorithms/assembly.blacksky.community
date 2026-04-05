@@ -70,6 +70,7 @@ import {
 import { handle_GET_reportExport } from "./src/routes/export";
 import { handle_GET_reportNarrative } from "./src/routes/reportNarrative";
 import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder, handle_GET_check_oss_supporter, handle_GET_badges, handle_POST_badges, handle_DELETE_badges } from "./src/auth/atproto-admin";
+import { handle_POST_conversation_record, handle_POST_statement_record } from "./src/routes/atproto-records";
 import {
   handle_POST_auth_deregister_jwt,
   handle_POST_joinWithInvite,
@@ -479,6 +480,26 @@ helpersInitialized.then(
       need("did", getStringLimitLength(1, 253), assignToP),
       need("badge", getStringLimitLength(1, 50), assignToP),
       handle_DELETE_badges
+    );
+
+    // AT Protocol record tracking
+    app.post(
+      "/api/v3/atproto/conversation-record",
+      hybridAuth(assignToP),
+      need("conversation_id", getConversationIdFetchZid, assignToPCustom("zid")),
+      need("at_uri", getStringLimitLength(1, 500), assignToP),
+      need("at_cid", getStringLimitLength(1, 200), assignToP),
+      handle_POST_conversation_record
+    );
+
+    app.post(
+      "/api/v3/atproto/statement-record",
+      hybridAuthOptional(assignToP),
+      need("conversation_id", getConversationIdFetchZid, assignToPCustom("zid")),
+      need("tid", getInt, assignToP),
+      need("at_uri", getStringLimitLength(1, 500), assignToP),
+      need("at_cid", getStringLimitLength(1, 200), assignToP),
+      handle_POST_statement_record
     );
 
     app.get(

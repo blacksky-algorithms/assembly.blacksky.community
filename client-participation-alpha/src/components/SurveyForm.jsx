@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getConversationToken } from '../lib/auth';
+import { createStatementRecord } from '../lib/atproto-records';
 import PolisNet from '../lib/net';
 
 const submitPerspectiveAPI = async (text, conversation_id) => {
@@ -36,7 +37,27 @@ export default function SurveyForm({ s, conversation_id }) {
     const submittedText = text;
     setText('');
     try {
-      await submitPerspectiveAPI(submittedText, conversation_id);
+      const result = await submitPerspectiveAPI(submittedText, conversation_id);
+
+      // Publish statement record to user's atproto repo (non-blocking)
+      if (result?.conversation_at_uri && result?.conversation_at_cid) {
+        createStatementRecord({
+          conversationUri: result.conversation_at_uri,
+          conversationCid: result.conversation_at_cid,
+          text: submittedText,
+        }).then(async (atRecord) => {
+          // Store the AT URI back on the server for future strongRefs
+          if (atRecord && result?.tid) {
+            await PolisNet.polisPost('/atproto/statement-record', {
+              conversation_id,
+              tid: result.tid,
+              at_uri: atRecord.uri,
+              at_cid: atRecord.cid,
+            }).catch(() => {});
+          }
+        }).catch(err => console.warn('Statement record publish failed (non-fatal):', err));
+      }
+
       setFeedback(s.commentSent);
     } catch (error) {
       const errorText = error.responseText || error.message || '';

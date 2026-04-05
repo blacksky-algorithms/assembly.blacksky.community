@@ -62,6 +62,8 @@ export type PidReadyResult = {
   nextComment?: any;
   currentPid?: any;
   shouldMod?: any;
+  statement_at_uri?: string | null;
+  statement_at_cid?: string | null;
   auth?: {
     token: string;
     token_type: string;

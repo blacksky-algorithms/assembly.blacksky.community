@@ -332,7 +332,7 @@ async function handle_POST_comments(req: RequestWithP, res: any) {
       return;
     }
 
-    if (conversation.auth_needed_to_write && !xid) {
+    if (conversation.auth_needed_to_write && !xid && !is_seed && !is_moderator) {
       failJson(res, 403, "polis_err_post_comment_social_needed");
       return;
     }
@@ -376,10 +376,12 @@ async function handle_POST_comments(req: RequestWithP, res: any) {
     const tid = comment.tid;
 
     // 7. Handle voting on the comment if specified
+    // Skip auto-vote on seed comments when auth is required and user has no xid
     const shouldDefaultVote = req.p.is_seed && _.isUndefined(vote);
     const finalVote = shouldDefaultVote ? 0 : vote;
+    const skipVote = conversation.auth_needed_to_vote && !xid;
 
-    if (!_.isUndefined(finalVote)) {
+    if (!_.isUndefined(finalVote) && !skipVote) {
       await votesPost(uid, pid, zid, tid, xid, finalVote, 0, false);
     }
 
@@ -419,13 +421,22 @@ async function handle_POST_comments(req: RequestWithP, res: any) {
       }
     }, 100);
 
-    // 10. Build response
+    // 10. Fetch conversation AT URI for strongRef
+    const convAtInfo = await pg.queryP(
+      "SELECT at_uri, at_cid FROM conversations WHERE zid = $1",
+      [zid]
+    ) as any[];
+    const convAt = convAtInfo?.[0] || {};
+
+    // 11. Build response
     const response: any = {
       tid,
       currentPid: pid,
+      conversation_at_uri: convAt.at_uri || null,
+      conversation_at_cid: convAt.at_cid || null,
     };
 
-    // 11. Auth token will be automatically included by attachAuthToken middleware
+    // 12. Auth token will be automatically included by attachAuthToken middleware
 
     res.json(response);
   } catch (err: any) {
@@ -434,10 +445,11 @@ async function handle_POST_comments(req: RequestWithP, res: any) {
       zid,
       uid,
       pid,
-      error: err.message,
-      code: err.code,
-      constraint: err.constraint,
-      stack: err.stack,
+      error: typeof err === 'string' ? err : err?.message,
+      code: err?.code,
+      constraint: err?.constraint,
+      stack: err?.stack,
+      raw: String(err),
     });
 
     if (err.code === "23505" || err.code === 23505) {

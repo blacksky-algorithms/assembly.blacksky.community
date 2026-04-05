@@ -4,6 +4,7 @@ import EmailSubscribeForm from './EmailSubscribeForm';
 import AtprotoLogin from './AtprotoLogin';
 import { getPreferredLanguages } from '../strings/strings';
 import { getConversationToken } from '../lib/auth';
+import { createVoteRecord } from '../lib/atproto-records';
 import PolisNet from '../lib/net';
 
 const submitVoteAndGetNextCommentAPI = async (vote, conversation_id, high_priority = false) => {
@@ -77,6 +78,16 @@ export default function Survey({ initialStatement, s, conversation_id, importanc
       const result = await submitVoteAndGetNextCommentAPI(vote, conversation_id, isStatementImportant);
 
       setVoteError(null);
+
+      // Publish vote record to user's atproto repo (non-blocking)
+      if (result?.statement_at_uri && result?.statement_at_cid) {
+        createVoteRecord({
+          statementUri: result.statement_at_uri,
+          statementCid: result.statement_at_cid,
+          value: voteType,
+        }).catch(err => console.warn('Vote record publish failed (non-fatal):', err));
+      }
+
       if (result?.nextComment) {
         setStatement(result.nextComment);
       } else {
