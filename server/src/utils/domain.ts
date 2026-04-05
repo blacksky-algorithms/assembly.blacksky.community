@@ -116,7 +116,7 @@ function addCorsHeader(
   const isDevAndLocalhost =
     Config.isDevMode && origin && (origin.includes("localhost") || origin.includes("127.0.0.1"));
   const isBlackskyCommunity =
-    origin && (origin.includes("blacksky.community") || origin.includes("localhost"));
+    origin && (origin.includes("blacksky.community") || origin.includes("localhost") || origin.includes("127.0.0.1"));
 
   const shouldSkipValidation =
     Config.domainOverride || // Skip if domain override is set.
@@ -149,6 +149,11 @@ function addCorsHeader(
       "Access-Control-Allow-Methods",
       "GET, PUT, POST, DELETE, OPTIONS"
     );
+  }
+
+  // Handle preflight OPTIONS requests immediately
+  if (req.method === "OPTIONS") {
+    return res.status(204).send();
   }
 
   return next();
