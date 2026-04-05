@@ -153,7 +153,7 @@ function addCorsHeader(
 
   // Handle preflight OPTIONS requests immediately
   if (req.method === "OPTIONS") {
-    return res.status(204).send();
+    return res.status(204).json({});
   }
 
   return next();
