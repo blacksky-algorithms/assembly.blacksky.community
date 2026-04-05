@@ -77,76 +77,12 @@ export async function handle_POST_embed_vote(
   res.header("Access-Control-Allow-Origin", origin);
   res.header("Access-Control-Allow-Credentials", "true");
 
-  if (!conversation_id || tid === undefined || vote === undefined || !vote_at_uri) {
+  if (!conversation_id || tid === undefined || vote === undefined) {
     failJson(res, 400, "polis_err_embed_vote_missing_params");
     return;
   }
 
   try {
-    // 1. Parse the AT URI to extract the DID
-    // Format: at://did:plc:xxx/community.blacksky.assembly.vote/tid
-    const uriMatch = vote_at_uri.match(/^at:\/\/(did:[^/]+)\/community\.blacksky\.assembly\.vote\/(.+)$/);
-    if (!uriMatch) {
-      failJson(res, 400, "polis_err_embed_vote_invalid_uri");
-      return;
-    }
-    const did = uriMatch[1];
-    const rkey = uriMatch[2];
-
-    // 2. Verify the record exists in the DID's repo by fetching it from their PDS
-    // First resolve the DID to find the PDS
-    let pdsEndpoint: string;
-    try {
-      let didDoc: any;
-      if (did.startsWith("did:plc:")) {
-        const plcResp = await fetch(`https://plc.directory/${did}`);
-        if (!plcResp.ok) throw new Error("DID not found");
-        didDoc = await plcResp.json();
-      } else if (did.startsWith("did:web:")) {
-        const domain = did.replace("did:web:", "").replace(/:/g, "/");
-        const webResp = await fetch(`https://${domain}/.well-known/did.json`);
-        if (!webResp.ok) throw new Error("DID doc not found");
-        didDoc = await webResp.json();
-      } else {
-        failJson(res, 400, "polis_err_embed_vote_unsupported_did");
-        return;
-      }
-
-      const pdsService = didDoc.service?.find(
-        (s: any) => s.type === "AtprotoPersonalDataServer"
-      );
-      if (!pdsService?.serviceEndpoint) {
-        failJson(res, 400, "polis_err_embed_vote_no_pds");
-        return;
-      }
-      pdsEndpoint = pdsService.serviceEndpoint;
-    } catch (err) {
-      logger.error("Failed to resolve DID for vote verification", err);
-      failJson(res, 400, "polis_err_embed_vote_did_resolution_failed");
-      return;
-    }
-
-    // 3. Fetch the record from the PDS to verify it exists and matches
-    const recordResp = await fetch(
-      `${pdsEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=community.blacksky.assembly.vote&rkey=${encodeURIComponent(rkey)}`
-    );
-
-    if (!recordResp.ok) {
-      failJson(res, 403, "polis_err_embed_vote_record_not_found");
-      return;
-    }
-
-    const record = await recordResp.json();
-    const recordValue = record.value;
-
-    // 4. Verify the record's vote value matches what was claimed
-    if (recordValue.value !== vote) {
-      failJson(res, 403, "polis_err_embed_vote_mismatch");
-      return;
-    }
-
-    // 5. Now we know the DID owner actually created this vote record.
-    // Resolve or create the participant and record the vote.
     const zid = await getZidFromConversationId(conversation_id);
     const conv = await getConversationInfo(zid);
 
@@ -155,25 +91,96 @@ export async function handle_POST_embed_vote(
       return;
     }
 
-    // Get or create xid record for this DID
-    const xidRecords = (await pg.queryP(
-      "SELECT uid FROM xids WHERE xid = $1 AND owner = (SELECT org_id FROM conversations WHERE zid = $2)",
-      [did, zid]
-    )) as any[];
+    // If auth is required, vote_at_uri is mandatory (verified voting)
+    if (conv.auth_needed_to_vote && !vote_at_uri) {
+      failJson(res, 403, "polis_err_post_votes_social_needed");
+      return;
+    }
 
     let uid: number;
-    if (xidRecords.length > 0) {
-      uid = xidRecords[0].uid;
+    let did: string | null = null;
+
+    if (vote_at_uri) {
+      // === VERIFIED VOTE PATH ===
+      // Parse the AT URI to extract the DID
+      const uriMatch = vote_at_uri.match(/^at:\/\/(did:[^/]+)\/community\.blacksky\.assembly\.vote\/(.+)$/);
+      if (!uriMatch) {
+        failJson(res, 400, "polis_err_embed_vote_invalid_uri");
+        return;
+      }
+      did = uriMatch[1];
+      const rkey = uriMatch[2];
+
+      // Verify the record exists in the DID's repo
+      let pdsEndpoint: string;
+      try {
+        let didDoc: any;
+        if (did.startsWith("did:plc:")) {
+          const plcResp = await fetch(`https://plc.directory/${did}`);
+          if (!plcResp.ok) throw new Error("DID not found");
+          didDoc = await plcResp.json();
+        } else if (did.startsWith("did:web:")) {
+          const domain = did.replace("did:web:", "").replace(/:/g, "/");
+          const webResp = await fetch(`https://${domain}/.well-known/did.json`);
+          if (!webResp.ok) throw new Error("DID doc not found");
+          didDoc = await webResp.json();
+        } else {
+          failJson(res, 400, "polis_err_embed_vote_unsupported_did");
+          return;
+        }
+
+        const pdsService = didDoc.service?.find(
+          (s: any) => s.type === "AtprotoPersonalDataServer"
+        );
+        if (!pdsService?.serviceEndpoint) {
+          failJson(res, 400, "polis_err_embed_vote_no_pds");
+          return;
+        }
+        pdsEndpoint = pdsService.serviceEndpoint;
+      } catch (err) {
+        logger.error("Failed to resolve DID for vote verification", err);
+        failJson(res, 400, "polis_err_embed_vote_did_resolution_failed");
+        return;
+      }
+
+      // Fetch the record from the PDS to verify it exists and matches
+      const recordResp = await fetch(
+        `${pdsEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=community.blacksky.assembly.vote&rkey=${encodeURIComponent(rkey)}`
+      );
+
+      if (!recordResp.ok) {
+        failJson(res, 403, "polis_err_embed_vote_record_not_found");
+        return;
+      }
+
+      const record = await recordResp.json();
+      if (record.value.value !== vote) {
+        failJson(res, 403, "polis_err_embed_vote_mismatch");
+        return;
+      }
+
+      // Resolve or create user for this DID
+      const xidRecords = (await pg.queryP(
+        "SELECT uid FROM xids WHERE xid = $1 AND owner = (SELECT org_id FROM conversations WHERE zid = $2)",
+        [did, zid]
+      )) as any[];
+
+      if (xidRecords.length > 0) {
+        uid = xidRecords[0].uid;
+      } else {
+        uid = await createAnonUser();
+        await createXidRecordByZid(zid, uid, did);
+      }
     } else {
+      // === ANONYMOUS VOTE PATH ===
+      // No repo record — create anonymous participant
       uid = await createAnonUser();
-      await createXidRecordByZid(zid, uid, did);
     }
 
     // Get or create participant
     let pid: number;
     const existingPid = await getPidPromise(zid, uid, true);
     if (existingPid === -1) {
-      // Create participant
       const pidResult = (await pg.queryP(
         "INSERT INTO participants (uid, zid, created) VALUES ($1, $2, now_as_millis()) RETURNING pid",
         [uid, zid]
@@ -183,16 +190,16 @@ export async function handle_POST_embed_vote(
       pid = existingPid;
     }
 
-    // 6. Record the vote
+    // Record the vote
     await pg.queryP(
       "INSERT INTO votes (pid, zid, tid, vote, weight_x_32767, created) VALUES ($1, $2, $3, $4, 0, default) RETURNING *",
       [pid, zid, tid, vote]
     );
 
-    // 7. Get next comment for the voter
+    // Get next comment for the voter
     const nextComment = await getNextComment(zid, pid, [], undefined);
 
-    logger.info("Verified embed vote recorded", { did, zid, tid, vote, vote_at_uri });
+    logger.info("Embed vote recorded", { did: did || "anonymous", zid, tid, vote, vote_at_uri: vote_at_uri || "none" });
 
     res.status(200).json({
       success: true,
@@ -201,7 +208,6 @@ export async function handle_POST_embed_vote(
     });
   } catch (err: any) {
     if (err?.code === "23505") {
-      // Duplicate vote
       failJson(res, 409, "polis_err_vote_duplicate");
     } else {
       logger.error("polis_err_embed_vote", err);
