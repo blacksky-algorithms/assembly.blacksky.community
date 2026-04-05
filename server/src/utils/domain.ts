@@ -138,8 +138,11 @@ function addCorsHeader(
   }
 
   // Set CORS headers
-  if (origin) {
-    res.header("Access-Control-Allow-Origin", origin);
+  // Use wildcard for API paths since nginx may not forward the Origin header
+  const isApiPath = req.path?.startsWith("/api/");
+  const corsOrigin = isApiPath ? (origin || "*") : origin;
+  if (corsOrigin) {
+    res.header("Access-Control-Allow-Origin", corsOrigin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header(
       "Access-Control-Allow-Headers",
