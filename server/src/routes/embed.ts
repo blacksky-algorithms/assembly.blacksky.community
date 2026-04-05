@@ -19,10 +19,15 @@ import pg from "../db/pg-query";
  * No auth required for reading.
  */
 export async function handle_GET_embed_conversation(
-  req: { p: { zid: number; conversation_id: string } },
+  req: any,
   res: any
 ) {
   const { zid, conversation_id } = req.p;
+
+  // Set permissive CORS for embed endpoint — this is a public read API
+  const origin = req.headers?.origin || "*";
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Credentials", "true");
 
   try {
     const conv = await getConversationInfo(zid);
