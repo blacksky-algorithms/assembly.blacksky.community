@@ -105,7 +105,11 @@ if (initialData) {
 
 const hideHeader = Astro.url.searchParams.get('hide_header');
 ---
-<Layout title={surveyDetails?.title ?? 'Loading Conversation...'}>
+<Layout
+  title={surveyDetails?.title ?? "Blacksky People's Assembly"}
+  description={surveyDetails?.description ?? undefined}
+  conversation_id={conversation_id}
+>
   {/* Handle JWT token from initial data on client side */}
   <script define:vars={{ initialData }}>
     if (initialData && initialData.auth && initialData.auth.token) {

@@ -1,6 +1,28 @@
 ---
 import '../../styles/global.css';
-const { title = 'Polis Conversation' } = Astro.props;
+
+interface Props {
+  title?: string;
+  description?: string;
+  conversation_id?: string;
+  ogImage?: string;
+}
+
+const {
+  title = "Blacksky People's Assembly",
+  description = "Blacksky People\u2019s Assembly \u2013 a space for public deliberation and collective decision-making.",
+  conversation_id,
+  ogImage,
+} = Astro.props;
+
+const defaultImage = 'https://blacksky-cdn.nyc3.cdn.digitaloceanspaces.com/peoples-assembly.png';
+const host = Astro.request.headers.get('host') || 'assembly.blacksky.community';
+const image = ogImage
+  ? ogImage
+  : conversation_id
+    ? `https://${host}/og-image/${conversation_id}`
+    : defaultImage;
+const canonicalUrl = conversation_id ? `https://${host}/${conversation_id}` : undefined;
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -12,6 +34,16 @@ const { title = 'Polis Conversation' } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={image} />
 </head>
 <body>
     <slot />
