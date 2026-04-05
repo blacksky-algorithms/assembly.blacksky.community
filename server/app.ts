@@ -516,13 +516,13 @@ helpersInitialized.then(
       handle_GET_embed_conversation
     );
 
-    // Verified vote: requires AT URI of vote record as proof of DID ownership
+    // Embed vote: vote_at_uri required when auth_needed_to_vote, optional otherwise
     app.post(
       "/api/v3/embed/vote",
       need("conversation_id", getStringLimitLength(1, 1000), assignToP),
       need("tid", getInt, assignToP),
       need("vote", getIntInRange(-1, 1), assignToP),
-      need("vote_at_uri", getStringLimitLength(1, 500), assignToP),
+      want("vote_at_uri", getStringLimitLength(1, 500), assignToP),
       handle_POST_embed_vote
     );
 
