@@ -353,12 +353,12 @@ export function startIdentitySyncCron(): void {
     `identity-sync: cron registered (interval: ${SYNC_INTERVAL_MS / 1000 / 60} minutes)`
   );
 
-  // Initial run after 30s delay (let other services start first)
+  // Initial run after 10 min delay (let GitHub cache populate first)
   setTimeout(() => {
     syncIdentities().catch((err) =>
       logger.error("identity-sync: initial run failed", err)
     );
-  }, 30_000);
+  }, 10 * 60 * 1000);
 
   // Recurring
   setInterval(() => {
