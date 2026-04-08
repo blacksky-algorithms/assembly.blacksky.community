@@ -27,7 +27,7 @@ const FEEDGEN_MEMBER_LIST = process.env.FEEDGEN_MEMBER_LIST || "blacksky";
 
 async function syncPdsAccounts(now: number): Promise<void> {
   if (!PDS_EXPORT_URL && !PDS_EXPORT_PATH) {
-    logger.info("identity-sync: PDS_EXPORT_URL/PDS_EXPORT_PATH not set, skipping PDS sync");
+    logger.warn("identity-sync: PDS_EXPORT_URL/PDS_EXPORT_PATH not set, skipping PDS sync");
     return;
   }
 
@@ -52,7 +52,7 @@ async function syncPdsAccounts(now: number): Promise<void> {
       }>;
     }
 
-    logger.info(`identity-sync: PDS export returned ${rows.length} accounts`);
+    logger.warn(`identity-sync: PDS export returned ${rows.length} accounts`);
 
     // Batch upsert in chunks of 500
     const chunkSize = 500;
@@ -74,7 +74,7 @@ async function syncPdsAccounts(now: number): Promise<void> {
       );
     }
 
-    logger.info(`identity-sync: PDS sync complete (${rows.length} accounts)`);
+    logger.warn(`identity-sync: PDS sync complete (${rows.length} accounts)`);
   } catch (err) {
     logger.error("identity-sync: PDS sync failed", err);
   }
@@ -86,7 +86,7 @@ async function syncPdsAccounts(now: number): Promise<void> {
 
 async function syncMembership(now: number): Promise<void> {
   if (!isFeedgenConfigured()) {
-    logger.info("identity-sync: FEEDGEN_DATABASE_URL not set, skipping membership sync");
+    logger.warn("identity-sync: FEEDGEN_DATABASE_URL not set, skipping membership sync");
     return;
   }
 
@@ -98,7 +98,7 @@ async function syncMembership(now: number): Promise<void> {
     );
 
     const memberDids = result.rows.map((r: { did: string }) => r.did);
-    logger.info(`identity-sync: feedgen returned ${memberDids.length} members`);
+    logger.warn(`identity-sync: feedgen returned ${memberDids.length} members`);
 
     // Batch upsert in chunks
     const chunkSize = 1000;
@@ -128,7 +128,7 @@ async function syncMembership(now: number): Promise<void> {
       );
     }
 
-    logger.info(`identity-sync: membership sync complete (${memberDids.length} members)`);
+    logger.warn(`identity-sync: membership sync complete (${memberDids.length} members)`);
   } catch (err) {
     logger.error("identity-sync: membership sync failed", err);
   }
@@ -153,7 +153,7 @@ async function syncOpenCollective(now: number): Promise<void> {
     for (const e of admins) teamEmails.add(e);
     for (const e of accountants) teamEmails.add(e);
 
-    logger.info(
+    logger.warn(
       `identity-sync: OC returned ${backers.size} funders, ${teamEmails.size} team`
     );
 
@@ -195,7 +195,7 @@ async function syncOpenCollective(now: number): Promise<void> {
       );
     }
 
-    logger.info("identity-sync: OC sync complete");
+    logger.warn("identity-sync: OC sync complete");
   } catch (err) {
     logger.error("identity-sync: OC sync failed", err);
   }
@@ -260,7 +260,7 @@ async function upsertByEmail(
 async function syncGithubSupporters(now: number): Promise<void> {
   const ghData = getGithubSupporterData();
   if (!ghData) {
-    logger.info("identity-sync: GitHub cache not ready, skipping OSS sync");
+    logger.warn("identity-sync: GitHub cache not ready, skipping OSS sync");
     return;
   }
 
@@ -302,7 +302,7 @@ async function syncGithubSupporters(now: number): Promise<void> {
     );
   }
 
-  logger.info("identity-sync: GitHub OSS sync complete");
+  logger.warn("identity-sync: GitHub OSS sync complete");
 }
 
 // ---------------------------------------------------------------------------
@@ -311,7 +311,7 @@ async function syncGithubSupporters(now: number): Promise<void> {
 
 async function syncIdentities(): Promise<void> {
   const startTime = Date.now();
-  logger.info("identity-sync: starting...");
+  logger.warn("identity-sync: starting...");
 
   try {
     const now = Date.now();
@@ -322,7 +322,7 @@ async function syncIdentities(): Promise<void> {
     await syncGithubSupporters(now);
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    logger.info(`identity-sync: complete in ${elapsed}s`);
+    logger.warn(`identity-sync: complete in ${elapsed}s`);
   } catch (err) {
     logger.error("identity-sync: failed", err);
   }
