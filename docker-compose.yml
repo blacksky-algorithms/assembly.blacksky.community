@@ -70,6 +70,8 @@ services:
     volumes:
       # Persist logs to a volume, so they can be accessed after the container is stopped.
       - server-logs:/app/logs
+      # Sync data for identity cron
+      - ./data:/app/data:ro
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
