@@ -11,6 +11,7 @@ import { getNextComment } from "../nextComment";
 import { getComments } from "../comment";
 import { createAnonUser } from "../auth/create-user";
 import { getPidPromise } from "../user";
+import { verifyXidJWT } from "../auth/xid-jwt";
 import logger from "../utils/logger";
 import { failJson } from "../utils/fail";
 import pg from "../db/pg-query";
@@ -98,9 +99,28 @@ export async function handle_POST_embed_vote(
     }
 
     let uid: number;
+    let pid: number | undefined;
     let did: string | null = null;
 
-    if (vote_at_uri) {
+    // Try to resolve participant from JWT (from participationInit)
+    const authHeader = req.headers?.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const claims = verifyXidJWT(authHeader.slice(7));
+        if (claims.uid && claims.pid && claims.conversation_id === conversation_id) {
+          uid = claims.uid;
+          pid = claims.pid;
+          did = claims.xid || null;
+          logger.warn("embed vote: resolved participant from JWT", { uid, pid, did });
+        }
+      } catch {
+        // JWT invalid or expired — fall through to other resolution paths
+      }
+    }
+
+    if (pid !== undefined && uid! !== undefined) {
+      // Already resolved from JWT — skip DID/anonymous resolution
+    } else if (vote_at_uri) {
       // === VERIFIED VOTE PATH ===
       // Parse the AT URI to extract the DID
       const uriMatch = vote_at_uri.match(/^at:\/\/(did:[^/]+)\/community\.blacksky\.assembly\.vote\/(.+)$/);
@@ -177,17 +197,18 @@ export async function handle_POST_embed_vote(
       uid = await createAnonUser();
     }
 
-    // Get or create participant
-    let pid: number;
-    const existingPid = await getPidPromise(zid, uid, true);
-    if (existingPid === -1) {
-      const pidResult = (await pg.queryP(
-        "INSERT INTO participants (uid, zid, created) VALUES ($1, $2, now_as_millis()) RETURNING pid",
-        [uid, zid]
-      )) as any[];
-      pid = pidResult[0].pid;
-    } else {
-      pid = existingPid;
+    // Get or create participant (skip if already resolved from JWT)
+    if (pid === undefined) {
+      const existingPid = await getPidPromise(zid, uid!, true);
+      if (existingPid === -1) {
+        const pidResult = (await pg.queryP(
+          "INSERT INTO participants (uid, zid, created) VALUES ($1, $2, now_as_millis()) RETURNING pid",
+          [uid!, zid]
+        )) as any[];
+        pid = pidResult[0].pid;
+      } else {
+        pid = existingPid;
+      }
     }
 
     // Record the vote
