@@ -213,7 +213,12 @@ async function refreshCache(): Promise<void> {
 
     // 1. Get all public repos
     const repos = await ghFetchPaginated(`/orgs/${ORG}/repos?type=public`);
-    logger.info(`Found ${repos.length} public repos`);
+    logger.warn(`GitHub: Found ${repos.length} public repos`);
+
+    if (repos.length === 0) {
+      logger.warn("GitHub: No repos returned (likely rate limited), skipping cache refresh");
+      return;
+    }
 
     // 2. For each repo, get stargazers and contributors
     for (const repo of repos) {
@@ -255,6 +260,11 @@ async function refreshCache(): Promise<void> {
       }
     }
 
+    if (allUsernames.size === 0) {
+      logger.warn("GitHub: No users found, not updating cache");
+      return;
+    }
+
     cache = {
       dids: newDids,
       handles: newHandles,
@@ -263,7 +273,7 @@ async function refreshCache(): Promise<void> {
     };
     cacheTimestamp = Date.now();
 
-    logger.info(
+    logger.warn(
       `GitHub supporters cache ready: ${newDids.size} DIDs, ${newHandles.size} handles, ${newEmails.size} emails from ${allUsernames.size} users`
     );
   } catch (err) {
