@@ -215,7 +215,7 @@ let ocCache: OcRoleCache | null = null;
 let ocCacheTimestamp = 0;
 
 const OC_MEMBERS_QUERY = `
-  query account($slug: String, $role: MemberRole, $limit: Int, $offset: Int) {
+  query account($slug: String, $role: [MemberRole], $limit: Int, $offset: Int) {
     account(slug: $slug) {
       members(role: $role, limit: $limit, offset: $offset) {
         totalCount
@@ -242,7 +242,7 @@ export async function fetchOcMembersByRole(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: OC_MEMBERS_QUERY,
-        variables: { slug: "blacksky", role, limit: 1000, offset },
+        variables: { slug: "blacksky", role: [role], limit: 1000, offset },
       }),
     });
     const data = await resp.json();
