@@ -641,7 +641,7 @@ helpersInitialized.then(
 
     app.post(
       "/api/v3/convSubscriptions",
-      hybridAuth(assignToP),
+      hybridAuthOptional(assignToP),
       need(
         "conversation_id",
         getConversationIdFetchZid,
