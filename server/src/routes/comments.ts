@@ -854,6 +854,28 @@ async function handle_POST_comments_bulk(
           addNotificationTask(zid!);
         }
 
+        // Write AT record for seed statements to anon repo
+        if (is_seed) {
+          try {
+            const convInfo = await getConversationInfo(zid!);
+            if (convInfo.at_uri && convInfo.at_cid) {
+              const atResult = await createAnonStatementRecord({
+                conversationUri: convInfo.at_uri,
+                conversationCid: convInfo.at_cid,
+                text: txt,
+              });
+              if (atResult) {
+                await pg.queryP(
+                  "UPDATE comments SET at_uri = $1, at_cid = $2 WHERE zid = $3 AND tid = $4",
+                  [atResult.uri, atResult.cid, zid, tid]
+                );
+              }
+            }
+          } catch (atErr) {
+            logger.warn("Failed to create AT record for bulk seed comment", atErr);
+          }
+        }
+
         results.push({ txt, status: "success", tid });
       } catch (err: any) {
         logger.error("polis_err_bulk_comment_item", { error: err, txt });

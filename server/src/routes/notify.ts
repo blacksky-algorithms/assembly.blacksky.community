@@ -82,24 +82,71 @@ function createNotificationsSubscribeUrl(conversation_id: any, email: any) {
   return server + "/" + path + "?" + paramsToStringSortedByName(params);
 }
 
-function subscribeToNotifications(zid: number, uid?: number, email?: string) {
+async function subscribeToNotifications(zid: number, uid?: number, email?: string) {
   const type = 1; // 1 for email
-  logger.info("subscribeToNotifications", { zid, uid });
-  return pg
-    .queryP(
-      "update participants_extended set subscribe_email = ($3) where zid = ($1) and uid = ($2);",
-      [zid, uid, email]
-    )
-    .then(function () {
-      return pg
-        .queryP(
-          "update participants set subscribed = ($3) where zid = ($1) and uid = ($2);",
-          [zid, uid, type]
-        )
-        .then(function () {
-          return type;
-        });
-    });
+  logger.warn("subscribeToNotifications", { zid, uid, email });
+
+  // If no uid but we have an email, find or create the user/participant
+  let resolvedUid = uid;
+  if (!resolvedUid && email) {
+    // Check if a user with this email exists
+    const existingUsers = (await pg.queryP(
+      "SELECT uid FROM users WHERE email = $1 LIMIT 1",
+      [email]
+    )) as any[];
+
+    if (existingUsers.length > 0) {
+      resolvedUid = existingUsers[0].uid;
+    } else {
+      // Create anonymous user with email
+      const newUser = (await pg.queryP(
+        "INSERT INTO users (email, created) VALUES ($1, default) RETURNING uid",
+        [email]
+      )) as any[];
+      resolvedUid = newUser[0].uid;
+    }
+
+    // Ensure participant exists
+    const existingPtpt = (await pg.queryP(
+      "SELECT pid FROM participants WHERE zid = $1 AND uid = $2 LIMIT 1",
+      [zid, resolvedUid]
+    )) as any[];
+
+    if (existingPtpt.length === 0) {
+      await pg.queryP(
+        "INSERT INTO participants (uid, zid, created) VALUES ($1, $2, now_as_millis())",
+        [resolvedUid, zid]
+      );
+    }
+
+    // Ensure participants_extended row exists
+    const existingExt = (await pg.queryP(
+      "SELECT uid FROM participants_extended WHERE zid = $1 AND uid = $2 LIMIT 1",
+      [zid, resolvedUid]
+    )) as any[];
+
+    if (existingExt.length === 0) {
+      await pg.queryP(
+        "INSERT INTO participants_extended (uid, zid, subscribe_email) VALUES ($1, $2, $3)",
+        [resolvedUid, zid, email]
+      );
+    }
+  }
+
+  if (!resolvedUid) {
+    throw new Error("polis_err_subscribe_no_uid_or_email");
+  }
+
+  await pg.queryP(
+    "UPDATE participants_extended SET subscribe_email = $3 WHERE zid = $1 AND uid = $2",
+    [zid, resolvedUid, email]
+  );
+  await pg.queryP(
+    "UPDATE participants SET subscribed = $3 WHERE zid = $1 AND uid = $2",
+    [zid, resolvedUid, type]
+  );
+
+  return type;
 }
 
 function unsubscribeFromNotifications(zid: number, uid?: number) {

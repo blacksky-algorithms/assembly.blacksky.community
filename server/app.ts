@@ -833,6 +833,7 @@ helpersInitialized.then(
         getConversationIdFetchZid,
         assignToPCustom("zid")
       ),
+      need("conversation_id", getStringLimitLength(1, 1000), assignToP),
       want("is_seed", getBool, assignToP),
       want("xid", getStringLimitLength(1, 999), assignToP),
       resolve_pidThing("pid", assignToP, "post:comments-bulk"),
