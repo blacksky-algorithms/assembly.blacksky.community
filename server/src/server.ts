@@ -30,6 +30,7 @@ import {
   sendTextEmail,
   sendTextEmailWithBackup,
 } from "./email/senders";
+import { startIdentitySyncCron } from "./cron/sync-identities";
 
 AWS.config.update({ region: Config.awsRegion });
 const devMode = Config.isDevMode;
@@ -419,6 +420,9 @@ ${message}`;
   }
   setInterval(trySendingBackupEmailTest, 1000 * 60 * 60 * 23); // try every 23 hours (so it should only try roughly once a day)
   trySendingBackupEmailTest();
+
+  // Identity/badge sync cron — populates identities table from feedgen, OC, GitHub, PDS
+  startIdentitySyncCron();
   function sendEinviteEmail(req: any, email: any, einvite: any) {
     const serverName = getServerNameWithProtocol(req);
     const body = `Welcome to Blacksky People's Assembly!

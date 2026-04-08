@@ -289,6 +289,19 @@ export function isOssSupporter(
 }
 
 /**
+ * Get the raw cache data for use by the identity sync cron.
+ * Returns null if cache isn't ready yet.
+ */
+export function getGithubSupporterData(): {
+  dids: Set<string>;
+  handles: Set<string>;
+  emails: Set<string>;
+} | null {
+  if (!cache.ready) return null;
+  return { dids: cache.dids, handles: cache.handles, emails: cache.emails };
+}
+
+/**
  * Ensure cache is populated. Call on server startup or first request.
  */
 export function ensureGithubCacheReady(): void {

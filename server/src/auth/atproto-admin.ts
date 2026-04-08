@@ -9,9 +9,11 @@ import pg from "../db/pg-query";
 
 // eslint-disable-next-line no-restricted-properties
 const FEEDGEN_DATABASE_URL = process.env.FEEDGEN_DATABASE_URL || "";
+// eslint-disable-next-line no-restricted-properties
+const FEEDGEN_MEMBER_LIST = process.env.FEEDGEN_MEMBER_LIST || "blacksky";
 let feedgenPool: pgLib.Pool | null = null;
 
-function getFeedgenPool(): pgLib.Pool {
+export function getFeedgenPool(): pgLib.Pool {
   if (!feedgenPool) {
     // Strip sslmode from URL — we configure SSL via the pool options
     const connStr = FEEDGEN_DATABASE_URL.replace(/[?&]sslmode=[^&]*/g, '');
@@ -22,6 +24,10 @@ function getFeedgenPool(): pgLib.Pool {
     });
   }
   return feedgenPool;
+}
+
+export function isFeedgenConfigured(): boolean {
+  return !!FEEDGEN_DATABASE_URL;
 }
 
 const JWT_ALGORITHM = "RS256" as const;
@@ -185,8 +191,8 @@ export async function checkMembershipBatch(
   try {
     const pool = getFeedgenPool();
     const result = await pool.query(
-      "SELECT DISTINCT did FROM membership WHERE did = ANY($1) AND included = true AND list = 'blacksky'",
-      [dids]
+      "SELECT DISTINCT did FROM membership WHERE did = ANY($1) AND included = true AND list = $2",
+      [dids, FEEDGEN_MEMBER_LIST]
     );
     return new Set(result.rows.map((r: any) => r.did));
   } catch (err) {
@@ -223,7 +229,7 @@ const OC_MEMBERS_QUERY = `
   }
 `;
 
-async function fetchOcMembersByRole(
+export async function fetchOcMembersByRole(
   role: string,
 ): Promise<Set<string>> {
   const emails = new Set<string>();
