@@ -266,13 +266,14 @@ async function _issueJWTIfNeeded(
   isNewlyCreated: boolean,
   needsNewJWT: boolean
 ): Promise<{ token?: string; conversationId?: string }> {
-  // Only issue JWT for:
+  // Issue JWT for:
   // 1. Newly created participants
   // 2. Participants that need a new JWT (conversation mismatch)
-  // 3. Legacy cookie users who need migration
-  // AND when they don't already have a valid JWT
+  // 3. XID participants (embeds need a JWT for vote identity)
+  // AND when they don't already have a valid JWT for this conversation
+  const isXidParticipant = !!req.p.xid;
   const shouldIssueJWT =
-    (isNewlyCreated || needsNewJWT) &&
+    (isNewlyCreated || needsNewJWT || isXidParticipant) &&
     (!req.headers?.authorization || req.p.jwt_conversation_mismatch);
 
   if (!shouldIssueJWT) {
