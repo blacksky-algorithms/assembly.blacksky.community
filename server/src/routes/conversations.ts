@@ -790,6 +790,8 @@ function handle_PUT_conversations(
       write_type: any;
       importance_enabled: any;
       owner_sees_participation_stats: any;
+      auth_needed_to_vote: any;
+      auth_needed_to_write: any;
       launch_presentation_return_url_hex: any;
       link_url: any;
       send_created_email: any;
@@ -884,6 +886,8 @@ function handle_PUT_conversations(
         fields.importance_enabled = req.p.importance_enabled;
       }
       ifDefinedSet("auth_opt_allow_3rdparty", req.p, fields);
+      ifDefinedSet("auth_needed_to_vote", req.p, fields);
+      ifDefinedSet("auth_needed_to_write", req.p, fields);
 
       if (!_.isUndefined(req.p.owner_sees_participation_stats)) {
         fields.owner_sees_participation_stats =
@@ -1108,9 +1112,10 @@ function handle_POST_conversations(
               context: req.p.context || null,
               owner_sees_participation_stats:
                 !!req.p.owner_sees_participation_stats,
-              // Set defaults for fields that aren't set at postgres level.
-              auth_needed_to_vote: DEFAULTS.auth_needed_to_vote,
-              auth_needed_to_write: DEFAULTS.auth_needed_to_write,
+              auth_needed_to_vote:
+                req.p.auth_needed_to_vote ?? DEFAULTS.auth_needed_to_vote,
+              auth_needed_to_write:
+                req.p.auth_needed_to_write ?? DEFAULTS.auth_needed_to_write,
               auth_opt_allow_3rdparty:
                 req.p.auth_opt_allow_3rdparty ||
                 DEFAULTS.auth_opt_allow_3rdparty,
