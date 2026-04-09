@@ -43,7 +43,12 @@ async function polisFetch<T = any>(
   };
 
   // Inject atproto identity as xid params if authenticated
-  if (typeof window !== 'undefined' && data) {
+  // Skip injection if _anonymous flag is set (for anonymous statement submission)
+  const skipIdentity = data?._anonymous;
+  if (data?._anonymous) {
+    delete data._anonymous;
+  }
+  if (typeof window !== 'undefined' && data && !skipIdentity) {
     const identity = getAtprotoIdentity();
     if (identity && !data.xid) {
       data.xid = identity.did;

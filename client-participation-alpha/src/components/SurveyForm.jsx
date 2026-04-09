@@ -1,45 +1,53 @@
 import React, { useState } from 'react';
 import { getConversationToken } from '../lib/auth';
+import { getAtprotoIdentity } from '../lib/atproto-session';
 import { createStatementRecord } from '../lib/atproto-records';
 import PolisNet from '../lib/net';
 
-const submitPerspectiveAPI = async (text, conversation_id) => {
+const submitPerspectiveAPI = async (text, conversation_id, anonymous = false) => {
   const decodedToken = getConversationToken(conversation_id);
   const pid = decodedToken?.pid;
 
+  const data = {
+    txt: text,
+    conversation_id,
+    pid,
+    vote: -1,
+  };
+
+  if (anonymous) {
+    data._anonymous = true;
+  }
+
   try {
-    const resp = await PolisNet.polisPost('/comments', {
-      txt: text,
-      conversation_id,
-      pid,
-      vote: -1,
-    });
-    
-    // The net module automatically handles JWT extraction and storage
+    const resp = await PolisNet.polisPost('/comments', data);
     return resp;
   } catch (error) {
     console.error("Comment submission failed:", error);
-    // Re-throw for caller to handle if needed
     throw error;
   }
 };
 
 
-export default function SurveyForm({ s, conversation_id, conversationAt }) {
+export default function SurveyForm({ s, conversation_id, conversationAt, isLoggedIn, authRequired }) {
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState('');
   const [commentError, setCommentError] = useState('');
+  const [submitAnonymously, setSubmitAnonymously] = useState(false);
   const maxLength = 400;
+
+  const showAnonymousToggle = isLoggedIn && !authRequired;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!text.trim()) return;
     const submittedText = text;
+    const isAnonymous = submitAnonymously;
     setText('');
     try {
-      // 1. Create record in user's repo FIRST
+      // 1. Create record in user's repo FIRST (skip if anonymous)
       let atRecord = null;
-      if (conversationAt?.uri && conversationAt?.cid) {
+      if (!isAnonymous && conversationAt?.uri && conversationAt?.cid) {
         atRecord = await createStatementRecord({
           conversationUri: conversationAt.uri,
           conversationCid: conversationAt.cid,
@@ -47,11 +55,11 @@ export default function SurveyForm({ s, conversation_id, conversationAt }) {
         });
       }
 
-      // 2. Submit to assembly server with AT URI
-      const result = await submitPerspectiveAPI(submittedText, conversation_id);
+      // 2. Submit to assembly server
+      const result = await submitPerspectiveAPI(submittedText, conversation_id, isAnonymous);
 
-      // 3. Store AT URI on server for future strongRefs
-      if (atRecord && result?.tid) {
+      // 3. Store AT URI on server for future strongRefs (skip if anonymous)
+      if (!isAnonymous && atRecord && result?.tid) {
         PolisNet.polisPost('/atproto/statement-record', {
           conversation_id,
           tid: result.tid,
@@ -98,6 +106,16 @@ export default function SurveyForm({ s, conversation_id, conversationAt }) {
             {text.length} / {maxLength}
           </div>
         </div>
+        {showAnonymousToggle && (
+          <label className="anonymous-toggle">
+            <input
+              type="checkbox"
+              checked={submitAnonymously}
+              onChange={(e) => setSubmitAnonymously(e.target.checked)}
+            />
+            Submit anonymously
+          </label>
+        )}
         <button type="submit" className="submit-button" disabled={!text.trim()}>
           {s.submitComment}
         </button>

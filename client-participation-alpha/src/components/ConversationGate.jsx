@@ -22,6 +22,7 @@ export default function ConversationGate({
   const [ready, setReady] = useState(false);
   const [statement, setStatement] = useState(initialStatement);
   const [conversationAt, setConversationAt] = useState({ uri: null, cid: null });
+  const [showOptionalLogin, setShowOptionalLogin] = useState(false);
 
   useEffect(() => {
     const id = getAtprotoIdentity();
@@ -66,9 +67,24 @@ export default function ConversationGate({
 
   if (isLoggedIn && !ready) return null;
 
+  if (showOptionalLogin) {
+    return <AtprotoLogin conversation_id={conversation_id} s={s} />;
+  }
+
   return (
     <>
-      {isLoggedIn && <UserIdentity identity={identity} />}
+      {isLoggedIn ? (
+        <UserIdentity identity={identity} />
+      ) : !needsAuth ? (
+        <div className="optional-login">
+          <button
+            className="optional-login-link"
+            onClick={() => setShowOptionalLogin(true)}
+          >
+            Sign in with your atproto identity →
+          </button>
+        </div>
+      ) : null}
 
       <TopicAgenda conversation_id={conversation_id} />
 
@@ -87,7 +103,13 @@ export default function ConversationGate({
         s={s}
       />
 
-      <SurveyForm s={s} conversation_id={conversation_id} conversationAt={conversationAt} />
+      <SurveyForm
+        s={s}
+        conversation_id={conversation_id}
+        conversationAt={conversationAt}
+        isLoggedIn={isLoggedIn}
+        authRequired={needsAuth}
+      />
     </>
   );
 }
