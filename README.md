@@ -6,7 +6,7 @@ This is a fork of [Polis](https://github.com/compdemocracy/polis) by [The Comput
 
 ## How this fork differs
 
-- **atproto identity** — Participants sign in with their [AT Protocol](https://atproto.com) handle (e.g. from Bluesky). Votes and statements are optionally published as signed records in the participant's repo.
+- **atproto identity** — Participants sign in with their [AT Protocol](https://atproto.com) handle (e.g. from Blacksky). Votes and statements are optionally published as signed records in the participant's repo.
 - **Delphi analysis pipeline** — Replaces the legacy Clojure math service with a Python pipeline using sentence embeddings (all-MiniLM-L6-v2), UMAP, HDBSCAN, and local LLM narrative generation via Ollama.
 - **Participation client** — An Astro 5 + React client (`client-participation-alpha/`) replaces the legacy Backbone client for the voting interface.
 - **Embeddable voting** — Conversations can be embedded as interactive voting cards in other applications (e.g. the [blacksky.community](https://blacksky.community) social client).
