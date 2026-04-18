@@ -210,9 +210,11 @@ function moderateCommentQuery(
   is_meta: any
 ) {
   return new Promise((resolve, reject) => {
+    // Rejected comments (mod = -1) should always be inactive
+    const resolvedActive = mod === -1 ? false : active;
     const query =
       "UPDATE comments SET active = $1, mod = $2, is_meta = $3 WHERE zid = $4 AND tid = $5";
-    const params = [active, mod, is_meta, zid, tid];
+    const params = [resolvedActive, mod, is_meta, zid, tid];
 
     logger.debug("Executing query:", { query });
     logger.debug("With parameters:", { params });
