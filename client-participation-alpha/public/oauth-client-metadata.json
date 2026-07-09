@@ -6,7 +6,7 @@
     "https://assembly.blacksky.community/auth/callback",
     "https://assembly.blacksky.community/"
   ],
-  "scope": "atproto transition:email rpc:app.bsky.actor.getProfile?aud=did:web:api.bsky.app%23bsky_appview repo:community.blacksky.assembly.conversation repo:community.blacksky.assembly.statement repo:community.blacksky.assembly.vote",
+  "scope": "atproto transition:email rpc:app.bsky.actor.getProfile?aud=* repo:community.blacksky.assembly.conversation repo:community.blacksky.assembly.statement repo:community.blacksky.assembly.vote",
   "token_endpoint_auth_method": "none",
   "response_types": [
     "code"
