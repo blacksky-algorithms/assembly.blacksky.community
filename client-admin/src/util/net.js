@@ -40,13 +40,16 @@ export const setOidcTokenGetter = (getter) => {
 
 // Store Auth hooks for login redirect
 let oidcLoginRedirect = null
+let oidcRemoveUser = null
 
 export const setOidcActions = (actions) => {
   if (actions && typeof actions === 'object') {
     oidcLoginRedirect = actions.signinRedirect
+    oidcRemoveUser = actions.removeUser
   } else {
     // Clear if null/undefined passed
     oidcLoginRedirect = null
+    oidcRemoveUser = null
   }
 }
 
@@ -91,9 +94,13 @@ const getAccessTokenSilentlySPA = async (options) => {
 const handleAuthError = (error, response) => {
   if (response && (response.status === 401 || response.status === 403)) {
     console.warn('Authentication/authorization error:', response.status)
-    // For 401 (unauthorized), try to redirect to login
+    // For 401 (unauthorized), clear the stale session before redirecting so
+    // the signin page doesn't bounce back and forth in a redirect loop
     if (response.status === 401) {
-      // Check if we should force signout
+      if (oidcRemoveUser && typeof oidcRemoveUser === 'function') {
+        oidcRemoveUser()
+        return error
+      }
       if (oidcLoginRedirect && typeof oidcLoginRedirect === 'function') {
         oidcLoginRedirect()
         return error

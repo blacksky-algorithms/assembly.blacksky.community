@@ -5,7 +5,7 @@
  * This allows all existing components that use useAuth() to work without modification.
  */
 import { useState, useEffect } from 'react'
-import { getAtprotoIdentity, clearAtprotoIdentity } from './atproto-oauth'
+import { getAtprotoIdentity, clearAtprotoIdentity, isAdminTokenExpired } from './atproto-oauth'
 
 const ADMIN_TOKEN_KEY = 'atproto_admin_token'
 
@@ -21,7 +21,7 @@ export function useAuth() {
   const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null
 
   return {
-    isAuthenticated: identity !== null && token !== null,
+    isAuthenticated: identity !== null && token !== null && !isAdminTokenExpired(token),
     isLoading,
     user: identity ? { access_token: token, profile: identity } : null,
     error: null,

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { setOidcTokenGetter, setOidcActions } from '../util/net'
-import { getAtprotoIdentity, clearAtprotoIdentity } from '../util/atproto-oauth'
+import { getAtprotoIdentity, clearAtprotoIdentity, isAdminTokenExpired } from '../util/atproto-oauth'
 
 const ADMIN_TOKEN_KEY = 'atproto_admin_token'
 
@@ -11,7 +11,7 @@ const AtprotoConnector = ({ onAuthComplete }) => {
     const identity = getAtprotoIdentity()
     const token = localStorage.getItem(ADMIN_TOKEN_KEY)
 
-    if (identity && token) {
+    if (identity && token && !isAdminTokenExpired(token)) {
       // Set up a token getter that returns the stored admin JWT
       const tokenGetter = async () => token
       setOidcTokenGetter(tokenGetter)

@@ -27,7 +27,7 @@ import Account from './components/conversations-and-account/account'
 import Integrate from './components/conversations-and-account/integrate'
 
 import MainLayout from './components/main-layout'
-import { getAtprotoIdentity, getOAuthClient, setAtprotoIdentity } from './util/atproto-oauth'
+import { getAtprotoIdentity, getOAuthClient, setAtprotoIdentity, clearAtprotoIdentity, isAdminTokenExpired } from './util/atproto-oauth'
 import { Agent } from '@atproto/api'
 import URLs from './util/url'
 
@@ -140,7 +140,13 @@ const App = () => {
         })
     } else {
       const identity = getAtprotoIdentity()
-      if (identity && !localStorage.getItem(ADMIN_TOKEN_KEY)) {
+      const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (adminToken && isAdminTokenExpired(adminToken)) {
+        clearAtprotoIdentity()
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        setIsAuthenticated(false)
+        setIsLoading(false)
+      } else if (identity && !adminToken) {
         // Identity exists from participation login but no admin JWT — exchange it
         fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
           method: 'POST',
