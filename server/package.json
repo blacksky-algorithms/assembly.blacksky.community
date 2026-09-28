@@ -1,6 +1,6 @@
 {
   "name": "polis",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "polis =====",
   "main": "./dist/index.js",
   "scripts": {
