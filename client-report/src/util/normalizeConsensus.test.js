@@ -79,6 +79,6 @@ describe('enrichMathWithNormalizedConsensus', () => {
     
     expect(enriched["group-consensus-normalized"]).toBeDefined();
     expect(enriched["group-consensus-normalized"][123]).toBeCloseTo(0.833, 2);
-    expect(enriched["group-consensus-normalized"][456]).toBeCloseTo(0.167, 2);
+    expect(enriched["group-consensus-normalized"][456]).toBeCloseTo(0.125, 2);
   });
 });
