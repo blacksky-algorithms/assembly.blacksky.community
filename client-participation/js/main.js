@@ -9,6 +9,7 @@ var _ = require("lodash");
 require("../vis2/vis2"); // This is to initialise the 'window' object
 var Backbone = require("backbone");
 require("./net/backbonePolis"); // Monkeypatch Backbone
+var addProtocolToLinkIfNeeded = require("./util/linkProtocol");
 var CurrentUserModel = require("./stores/currentUser");
 var display = require("./util/display");
 var eb = require("./eventBus");
@@ -229,16 +230,6 @@ Handlebars.registerHelper("ifNotAuthenticated", function (arg0) {
 Handlebars.registerHelper("ifDebugCommentProjection", function (arg0) {
   return Utils.debugCommentProjection ? arg0.fn(this) : "";
 });
-
-function addProtocolToLinkIfNeeded(url) {
-  if (!url) {
-    return url;
-  } else if (url.match(/https?:\/\//)) {
-    return url;
-  } else {
-    return "http://" + url;
-  }
-}
 
 Handlebars.registerHelper("link", function (text, url) {
   text = Handlebars.Utils.escapeExpression(text);

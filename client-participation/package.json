@@ -1,6 +1,6 @@
 {
   "name": "polis-client-participation",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "start": "npm run dev",
     "analyze": "webpack --mode=production --analyze",
@@ -12,7 +12,8 @@
     "lint:verbose": "eslint .",
     "format": "prettier --write .",
     "dev": "webpack serve --mode=development",
-    "watch": "webpack --watch --mode=development"
+    "watch": "webpack --watch --mode=development",
+    "test": "node --test js/util/descriptionHtml.test.js js/util/linkProtocol.test.js"
   },
   "browserslist": [
     "> 0.5%",
