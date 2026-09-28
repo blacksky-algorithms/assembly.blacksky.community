@@ -122,12 +122,7 @@ const ConversationAdminContainer = () => {
           <Route path="reports/*" element={<Reports />} />
           <Route path="comments/*" element={<ModerateComments />} />
           <Route path="stats" element={<ConversationStats />} />
-          <Route
-            path={`${baseUrl}/topics`}
-            render={(props) => (
-              <TopicModeration {...props} conversation_id={params.conversation_id} />
-            )}
-          />
+          <Route path="topics/*" element={<TopicModeration />} />
           {/* <Route path="export" element={<DataExport />} /> */}
         </Routes>
       </Box>

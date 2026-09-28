@@ -110,7 +110,7 @@ class TopicTree extends React.Component {
   }
 
   renderTopic(topic, layerId, clusterId) {
-    const { match } = this.props
+    const { baseUrl } = this.props
     const { expandedTopics } = this.state
     const topicKey = topic.topic_key || `${layerId}_${clusterId}`
     const isExpanded = expandedTopics.has(topicKey)
@@ -172,7 +172,7 @@ class TopicTree extends React.Component {
               disabled={status === 'meta'}>
               Meta
             </Button>
-            <Link to={`${match.url}/topic/${encodeURIComponent(topicKey)}`}>
+            <Link to={`${baseUrl}/topic/${encodeURIComponent(topicKey)}`}>
               <Button variant="outline" size="small">
                 View Comments
               </Button>
