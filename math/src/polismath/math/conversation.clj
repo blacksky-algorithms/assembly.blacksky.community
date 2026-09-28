@@ -743,16 +743,20 @@
   "Same as small-conv-update-graph, but uses mini-batch PCA"
   (merge small-conv-update-graph
     {:pca (plmb/fnk [conv mat opts']
-            (let [n-ptpts (matrix/dimension-count mat 0)
-                  sample-size (sample-size n-ptpts)]
-              (loop [pca (:pca conv) iter (:pca-iters opts')]
-                (let [rand-indices (take sample-size (sampling/sample (range n-ptpts) :generator :twister))
-                      pca          ((partial-pca mat pca rand-indices) pca)]
-                  (if (= iter 0)
-                    ;; Then done, but don't forget to merge in the comment extremtiy, etc
-                    (with-proj-and-extremtiy pca)
-                    ;; Recur
-                    (recur pca (dec iter)))))))}))
+            ;; A single statement column has one possible component, which the mini-batch
+            ;; update cannot extend to the two the projection reads.
+            (if (= 1 (matrix/dimension-count mat 1))
+              (with-proj-and-extremtiy (pca/wrapped-pca mat (:n-comps opts')))
+              (let [n-ptpts (matrix/dimension-count mat 0)
+                    sample-size (sample-size n-ptpts)]
+                (loop [pca (:pca conv) iter (:pca-iters opts')]
+                  (let [rand-indices (take sample-size (sampling/sample (range n-ptpts) :generator :twister))
+                        pca          ((partial-pca mat pca rand-indices) pca)]
+                    (if (= iter 0)
+                      ;; Then done, but don't forget to merge in the comment extremtiy, etc
+                      (with-proj-and-extremtiy pca)
+                      ;; Recur
+                      (recur pca (dec iter))))))))}))
 
 
 (def eager-profiled-compiler

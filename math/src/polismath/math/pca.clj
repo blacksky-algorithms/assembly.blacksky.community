@@ -108,14 +108,11 @@
 (defn wrapped-pca
   "This function gracefully handles weird edge cases inherent in the messiness of real world data"
   [data n-comps & {:keys [iters start-vectors] :as kwargs}]
-  (match (map (partial matrix/dimension-count data) [0 1])
-    [1 n-cols]
-    {:center (matrix/matrix (repeatv n-comps 0))
-     :comps  (into [(matrix/normalise (matrix/get-row data 0))]
-               (repeat (dec n-comps) (repeatv n-cols 0)))}
+  (match (mapv (partial matrix/dimension-count data) [0 1])
     [n-rows 1]
     {:center (matrix/matrix [0])
-     :comps  (matrix/matrix [1])}
+     :comps  (into [(matrix/matrix [1])]
+               (repeat (dec n-comps) (matrix/matrix [0])))}
     :else
       (utils/apply-kwargs powerit-pca data n-comps
                     (assoc kwargs :start-vectors
