@@ -9,6 +9,7 @@ import { MPromise } from "./metered";
 import logger from "./logger";
 const zidToConversationIdCache = new LruCache({
   max: 1000,
+  maxAge: 60 * 1000,
 });
 
 export function getZinvite(zid: number, dontUseCache?: boolean) {
