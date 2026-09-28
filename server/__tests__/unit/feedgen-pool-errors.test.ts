@@ -19,6 +19,10 @@ jest.mock("../../src/db/pg-query", () => ({
   __esModule: true,
   default: {},
 }));
+jest.mock("../../src/utils/common", () => ({
+  __esModule: true,
+  isPolisDev: jest.fn(() => false),
+}));
 jest.mock("../../src/auth/create-user", () => ({
   __esModule: true,
   getOrCreateUserIDFromOidcSub: jest.fn(),

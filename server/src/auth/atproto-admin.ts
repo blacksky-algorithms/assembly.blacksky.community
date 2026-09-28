@@ -6,6 +6,7 @@ import logger from "../utils/logger";
 import { getOrCreateUserIDFromOidcSub } from "./create-user";
 import { failJson } from "../utils/fail";
 import pg from "../db/pg-query";
+import { isPolisDev } from "../utils/common";
 
 // eslint-disable-next-line no-restricted-properties
 const FEEDGEN_DATABASE_URL = process.env.FEEDGEN_DATABASE_URL || "";
@@ -388,10 +389,15 @@ export async function handle_GET_badges(
  * is_granted=false → force badge off (prevents automatic re-addition)
  */
 export async function handle_POST_badges(
-  req: { p: { did: string; badge: string; is_granted: boolean } },
+  req: { p: { uid?: number; did: string; badge: string; is_granted: boolean } },
   res: any
 ) {
-  const { did, badge, is_granted } = req.p;
+  const { uid, did, badge, is_granted } = req.p;
+
+  if (!isPolisDev(uid)) {
+    failJson(res, 403, "polis_err_badges_permission");
+    return;
+  }
 
   if (!did || !badge) {
     failJson(res, 400, "polis_err_badges_missing_params");
@@ -411,7 +417,7 @@ export async function handle_POST_badges(
       [did, badge, is_granted]
     );
 
-    logger.info("Badge override set", { did, badge, is_granted });
+    logger.info("Badge override set", { did, badge, is_granted, uid });
     res.status(200).json({ did, badge, is_granted });
   } catch (err) {
     logger.error("polis_err_post_badges", err);
@@ -424,10 +430,15 @@ export async function handle_POST_badges(
  * Remove a badge override (returns to automatic detection).
  */
 export async function handle_DELETE_badges(
-  req: { p: { did: string; badge: string } },
+  req: { p: { uid?: number; did: string; badge: string } },
   res: any
 ) {
-  const { did, badge } = req.p;
+  const { uid, did, badge } = req.p;
+
+  if (!isPolisDev(uid)) {
+    failJson(res, 403, "polis_err_badges_permission");
+    return;
+  }
 
   if (!did || !badge) {
     failJson(res, 400, "polis_err_badges_missing_params");
@@ -440,7 +451,7 @@ export async function handle_DELETE_badges(
       [did, badge]
     );
 
-    logger.info("Badge override removed", { did, badge });
+    logger.info("Badge override removed", { did, badge, uid });
     res.status(200).json({ did, badge, removed: true });
   } catch (err) {
     logger.error("polis_err_delete_badges", err);

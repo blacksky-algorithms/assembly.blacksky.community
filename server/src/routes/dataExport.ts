@@ -1,5 +1,5 @@
 import { getUserInfoForUid2 } from "../user";
-import { doAddDataExportTask } from "../utils/common";
+import { doAddDataExportTask, isModerator } from "../utils/common";
 import Config from "../config";
 import { failJson } from "../utils/fail";
 import AWS from "aws-sdk";
@@ -12,22 +12,28 @@ function handle_GET_dataExport(
   req: { p: { uid?: number; zid: number; unixTimestamp: number; format: any } },
   res: { json: (arg0: {}) => void }
 ) {
-  getUserInfoForUid2(req.p.uid)
-    .then((user: UserInfo) => {
-      return doAddDataExportTask(
-        Config.mathEnv,
-        user.email!,
-        req.p.zid,
-        req.p.unixTimestamp * 1000,
-        req.p.format,
-        Math.abs((Math.random() * 999999999999) >> 0)
-      )
-        .then(() => {
-          res.json({});
-        })
-        .catch((err: any) => {
-          failJson(res, 500, "polis_err_data_export123", err);
-        });
+  isModerator(req.p.zid, req.p.uid)
+    .then((allowed: boolean) => {
+      if (!allowed) {
+        failJson(res, 403, "polis_err_data_export_permission");
+        return;
+      }
+      return getUserInfoForUid2(req.p.uid).then((user: UserInfo) =>
+        doAddDataExportTask(
+          Config.mathEnv,
+          user.email!,
+          req.p.zid,
+          req.p.unixTimestamp * 1000,
+          req.p.format,
+          Math.abs((Math.random() * 999999999999) >> 0)
+        )
+          .then(() => {
+            res.json({});
+          })
+          .catch((err: any) => {
+            failJson(res, 500, "polis_err_data_export123", err);
+          })
+      );
     })
     .catch((err: any) => {
       failJson(res, 500, "polis_err_data_export123b", err);

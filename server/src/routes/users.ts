@@ -1,7 +1,7 @@
 import { sql_users } from "../db/sql";
 import { failJson } from "../utils/fail";
 import { getUser } from "../user";
-import { isPolisDev, escapeLiteral } from "../utils/common";
+import { isModerator, isPolisDev, escapeLiteral } from "../utils/common";
 import _ from "underscore";
 import pg from "../db/pg-query";
 import type {
@@ -27,7 +27,6 @@ interface PutUsersRequest extends ExpressRequest {
   p: {
     uid?: number;
     uid_of_user?: number;
-    email?: string;
     hname?: string;
   };
 }
@@ -69,7 +68,7 @@ async function handle_PUT_users(
   res: StandardResponse
 ): Promise<void> {
   let { uid } = req.p;
-  const { uid_of_user, email, hname } = req.p;
+  const { uid_of_user, hname } = req.p;
 
   // Allow polis dev to update other users
   if (isPolisDev(uid) && uid_of_user) {
@@ -81,13 +80,11 @@ async function handle_PUT_users(
     return;
   }
 
-  const fields: UserType = {};
-  if (email !== undefined) {
-    fields.email = email;
+  if (hname === undefined) {
+    failJson(res, 400, "polis_err_put_user_no_fields");
+    return;
   }
-  if (hname !== undefined) {
-    fields.hname = hname;
-  }
+  const fields: UserType = { hname };
 
   try {
     const query = sql_users.update(fields).where(sql_users.uid.equals(uid));
@@ -190,6 +187,11 @@ async function handle_POST_users_invite(
   }
 
   try {
+    if (!(await isModerator(zid, uid))) {
+      failJson(res, 403, "polis_err_sending_invite_permission");
+      return;
+    }
+
     // Get conversation info
     const conversation: ConversationInfo = await getConversationInfo(zid);
     const { owner } = conversation;
