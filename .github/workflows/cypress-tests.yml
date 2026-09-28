@@ -1,10 +1,6 @@
 name: E2E Tests
 
-on:
-  push:
-    branches: [ edge, stable ]
-  pull_request:
-    branches: [ edge, stable ]
+on: workflow_dispatch
 
 jobs:
   cypress-run:
