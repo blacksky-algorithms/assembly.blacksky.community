@@ -111,6 +111,15 @@ export async function handle_POST_embed_vote(
       return;
     }
 
+    const statements = (await pg.queryP(
+      "SELECT tid FROM comments WHERE zid = ($1) AND tid = ($2);",
+      [zid, tid]
+    )) as { tid: number }[];
+    if (statements.length === 0) {
+      failJson(res, 404, "polis_err_embed_vote_unknown_statement");
+      return;
+    }
+
     // If auth is required, vote_at_uri is mandatory (verified voting)
     if (conv.auth_needed_to_vote && !vote_at_uri) {
       failJson(res, 403, "polis_err_post_votes_social_needed");
