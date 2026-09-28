@@ -97,7 +97,7 @@ describe('ShareAndEmbed', () => {
   it('shows link to integrate page', () => {
     renderWithProviders(<ShareAndEmbed />)
     const integrateLink = screen.getByRole('link', {
-      name: /I want to integrate pol.is on my entire site/
+      name: /I want to integrate assembly.blacksky.community on my entire site/
     })
     expect(integrateLink).toHaveAttribute('href', '/integrate')
   })

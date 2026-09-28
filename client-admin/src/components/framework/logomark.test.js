@@ -23,7 +23,7 @@ describe('Logomark', () => {
   it('has correct default width', () => {
     const { container } = renderWithTheme(<Logomark />)
     const svg = container.querySelector('svg')
-    expect(svg).toHaveAttribute('width', '20')
+    expect(svg).toHaveAttribute('width', '80')
   })
 
   it('applies custom fill color', () => {
