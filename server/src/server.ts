@@ -301,11 +301,8 @@ function initializePolisHelpers() {
           );
           return;
         }
-        if (!results || !results.rows) {
-          res.writeHead(404);
-          res.json({
-            status: 404,
-          });
+        if (!results?.rows?.length) {
+          failJson(res, 403, "polis_err_fetching_zinvite_permission");
           return;
         }
         pg.query_readOnly(
@@ -352,7 +349,7 @@ function initializePolisHelpers() {
     pg.query(
       "SELECT * FROM conversations WHERE zid = ($1) AND owner = ($2);",
       [req.p.zid, req.p.uid],
-      function (err: any) {
+      function (err: any, results: { rows: unknown[] }) {
         if (err) {
           failJson(
             res,
@@ -360,6 +357,10 @@ function initializePolisHelpers() {
             "polis_err_creating_zinvite_invalid_conversation_or_owner",
             err
           );
+          return;
+        }
+        if (!results?.rows?.length) {
+          failJson(res, 403, "polis_err_creating_zinvite_permission");
           return;
         }
 

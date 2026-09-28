@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import logger from "../../utils/logger";
 import { DynamoDBClient, DynamoDBClientConfig } from "@aws-sdk/client-dynamodb";
 import {
@@ -39,6 +39,23 @@ const docClient = DynamoDBDocumentClient.from(client, {
     removeUndefinedValues: true,
   },
 });
+
+export async function requireTopicModerator(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    if (await isModerator(req.p.zid, req.p.uid)) {
+      next();
+      return;
+    }
+  } catch (err: unknown) {
+    failJson(res, 500, "polis_err_topicmod_permission_check", err);
+    return;
+  }
+  failJson(res, 403, "polis_err_topicmod_permission");
+}
 
 /**
  * GET /api/v3/topicMod/topics
@@ -672,7 +689,6 @@ export async function handle_GET_topicMod_proximity(
     return res.json({
       status: "error",
       message: "Error retrieving proximity data",
-      error: message,
     });
   }
 }

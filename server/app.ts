@@ -46,6 +46,7 @@ import {
   handle_GET_topicMod_proximity,
   handle_GET_topicMod_hierarchy,
   handle_GET_topicMod_stats,
+  requireTopicModerator,
 } from "./src/routes/delphi/topicMod";
 
 import { handle_GET_topicStats } from "./src/routes/topicStats";
@@ -477,6 +478,7 @@ helpersInitialized.then(
 
     app.post(
       "/api/v3/admin/badges",
+      hybridAuth(assignToP),
       need("did", getStringLimitLength(1, 253), assignToP),
       need("badge", getStringLimitLength(1, 50), assignToP),
       need("is_granted", getBool, assignToP),
@@ -485,6 +487,7 @@ helpersInitialized.then(
 
     app.delete(
       "/api/v3/admin/badges",
+      hybridAuth(assignToP),
       moveToBody,
       need("did", getStringLimitLength(1, 253), assignToP),
       need("badge", getStringLimitLength(1, 50), assignToP),
@@ -995,23 +998,27 @@ helpersInitialized.then(
     // TopicMod endpoints for topic-based moderation
     app.get(
       "/api/v3/topicMod/topics",
+      hybridAuth(assignToP),
       moveToBody,
       need(
         "conversation_id",
         getConversationIdFetchZid,
         assignToPCustom("zid")
       ),
+      requireTopicModerator,
       handle_GET_topicMod_topics
     );
 
     app.get(
       "/api/v3/topicMod/topics/:topicKey/comments",
+      hybridAuth(assignToP),
       moveToBody,
       need(
         "conversation_id",
         getConversationIdFetchZid,
         assignToPCustom("zid")
       ),
+      requireTopicModerator,
       handle_GET_topicMod_comments
     );
 
@@ -1040,23 +1047,27 @@ helpersInitialized.then(
 
     app.get(
       "/api/v3/topicMod/stats",
+      hybridAuth(assignToP),
       moveToBody,
       need(
         "conversation_id",
         getConversationIdFetchZid,
         assignToPCustom("zid")
       ),
+      requireTopicModerator,
       handle_GET_topicMod_stats
     );
 
     app.get(
       "/api/v3/topicMod/hierarchy",
+      hybridAuth(assignToP),
       moveToBody,
       need(
         "conversation_id",
         getConversationIdFetchZid,
         assignToPCustom("zid")
       ),
+      requireTopicModerator,
       handle_GET_topicMod_hierarchy
     );
 
@@ -1451,7 +1462,6 @@ helpersInitialized.then(
       "/api/v3/users",
       moveToBody,
       hybridAuth(assignToP),
-      want("email", getEmail, assignToP),
       want("hname", getOptionalStringLimitLength(9999), assignToP),
       want("uid_of_user", getInt, assignToP),
       handle_PUT_users
