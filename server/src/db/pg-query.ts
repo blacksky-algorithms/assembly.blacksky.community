@@ -63,6 +63,39 @@ const readsPgConnection = Object.assign(
 const readWritePool: Pool = new Pool(pgConnection as unknown as PoolConfig);
 const readPool: Pool = new Pool(readsPgConnection as unknown as PoolConfig);
 
+type PgError = Error & { code?: string };
+
+// The pool attaches the whole client to the error it emits, so only the
+// message and code are logged.
+function logPoolErrors(pool: Pool, name: string) {
+  pool.on("error", (err: PgError) => {
+    logger.error("pg_pool_idle_client_error", {
+      pool: name,
+      error: err.message,
+      code: err.code,
+    });
+  });
+}
+
+logPoolErrors(readWritePool, "primary");
+logPoolErrors(readPool, "readonly");
+
+// A checked-out client has no error listener of its own, and a lost
+// connection would otherwise surface as an uncaught exception.
+function guardClient(
+  client: PoolClient,
+  release: (err?: Error) => void
+): (err?: Error) => void {
+  const onClientError = (err: PgError) => {
+    logger.error("pg_client_error", { error: err.message, code: err.code });
+  };
+  client.on("error", onClientError);
+  return (err?: Error) => {
+    client.removeListener("error", onClientError);
+    release(err);
+  };
+}
+
 // Same syntax as pg.client.query, but uses connection pool
 // Also takes care of calling 'done'.
 function queryImpl(pool: Pool, queryString: string, ...args: any[]) {
@@ -82,7 +115,7 @@ function queryImpl(pool: Pool, queryString: string, ...args: any[]) {
   // Not sure whether we have to be this careful in calling release for these query results. There may or may
   // not have been a good reason why Mike did this. If just using pool.query works and doesn't exhibit scale
   // under load, might be worth stripping
-  return new Promise((resolve, reject) => {
+  const result = new Promise((resolve, reject) => {
     pool.connect((err, client, release) => {
       if (err) {
         if (callback) callback(err);
@@ -91,21 +124,26 @@ function queryImpl(pool: Pool, queryString: string, ...args: any[]) {
         logger.error("pg_connect_pool_fail", err);
         return reject(err);
       }
+      const done = guardClient(client, release);
       // Anyway, here's the actual query call
       client.query(queryString, params, function (err, results) {
         if (err) {
           // force the pool to destroy and remove a client by passing an instance of Error (or anything truthy, actually) to the release() callback
-          release(err);
+          done(err);
           if (callback) callback(err);
           return reject(err);
         } else {
-          release();
+          done();
           if (callback) callback(null, results);
           resolve(results.rows);
         }
       });
     });
   });
+  // Callers that pass a callback drop this promise, and the callback has
+  // already been given the failure.
+  result.catch(() => undefined);
+  return result;
 }
 
 const pgPoolLevelRanks = ["info", "verbose"]; // TODO investigate
