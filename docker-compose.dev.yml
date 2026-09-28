@@ -8,6 +8,10 @@
 # For more information see https://docs.docker.com/compose/extends/
 
 services:
+  client-participation-alpha:
+    ports:
+      - "4321:4321"
+
   server:
     build:
       target: dev
@@ -98,6 +102,19 @@ services:
       - AUTH_SIMULATOR_PORT=${AUTH_SIMULATOR_PORT:-3000}
     networks:
       - polis-net
+
+  dynamodb:
+    ports:
+      - "8000:8000"
+
+  ollama:
+    ports:
+      - "11434:11434"
+
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
 
   dynamodb-admin:
     image: aaronshaf/dynamodb-admin:latest
