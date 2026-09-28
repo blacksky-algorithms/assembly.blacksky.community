@@ -8,6 +8,12 @@ import { failJson } from "./fail";
 import Config from "../config";
 import logger from "./logger";
 
+// The result is placed inside an inline <script>, where "</script" or "<!--"
+// in a string value would end or alter the script element.
+function serializeForInlineScript(data: unknown): string {
+  return (JSON.stringify(data) ?? "null").replace(/</g, "\\u003c");
+}
+
 function makeFileFetcher(
   hostname?: string,
   port?: string | number,
@@ -31,7 +37,7 @@ function makeFileFetcher(
       x = x.pipe(
         replaceStream(
           '"REPLACE_THIS_WITH_PRELOAD_DATA"',
-          JSON.stringify(preloadData)
+          serializeForInlineScript(preloadData)
         )
       );
     }
@@ -174,4 +180,4 @@ function fetchIndex(
   }
 }
 
-export { makeFileFetcher, fetchIndex };
+export { makeFileFetcher, fetchIndex, serializeForInlineScript };
