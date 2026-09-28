@@ -48,7 +48,9 @@ function redirectIfNotHttps(
   const isHttps = req.headers["x-forwarded-proto"] === "https";
 
   if (!isHttps) {
-    logger.debug("redirecting to https", { headers: req.headers });
+    logger.debug("redirecting to https", {
+      headers: withoutCredentials(req.headers),
+    });
     // Only redirect GET requests; otherwise, send a 400 error for non-GET methods
     if (req.method === "GET") {
       res.writeHead(302, {
@@ -93,6 +95,20 @@ function hasWhitelistMatches(host: string): boolean {
   });
 }
 
+const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"];
+
+function withoutCredentials(
+  headers: Record<string, unknown>
+): Record<string, unknown> {
+  const safe: Record<string, unknown> = { ...headers };
+  for (const name of Object.keys(safe)) {
+    if (CREDENTIAL_HEADERS.includes(name.toLowerCase())) {
+      safe[name] = "[redacted]";
+    }
+  }
+  return safe;
+}
+
 function addCorsHeader(
   req: ExpressRequest,
   res: ExpressResponse,
@@ -132,7 +148,7 @@ function addCorsHeader(
       logger.info("CORS: domain not whitelisted", {
         origin,
         path: req.path,
-        headers: req.headers,
+        headers: withoutCredentials(req.headers),
       });
       return next("unauthorized domain: " + origin);
     }
