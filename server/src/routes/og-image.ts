@@ -13,6 +13,7 @@ const IMAGE_HEIGHT = 630;
 // Cache generated images (max 200 entries)
 const imageCache = new LruCache<string, Buffer>({
   max: 200,
+  maxAge: 60 * 1000,
 });
 
 // Load base image at startup (logo + "blacksky algorithms" only).
@@ -118,6 +119,7 @@ export function handle_GET_ogImage(
     res.set({
       "Content-Type": "image/png",
       "Cache-Control": "public, max-age=86400",
+      Vary: "Origin",
     });
     res.end(cached);
     return;
@@ -144,6 +146,7 @@ export function handle_GET_ogImage(
       res.set({
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400",
+        Vary: "Origin",
       });
       res.end(pngBuffer);
     })

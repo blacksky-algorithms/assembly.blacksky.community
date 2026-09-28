@@ -129,6 +129,7 @@ function getConversationInfoByConversationId(
 
 const conversationIdToZidCache = new LruCache<string, number>({
   max: 1000,
+  maxAge: 60 * 1000,
 });
 
 // NOTE: currently conversation_id is stored as zinvite

@@ -273,6 +273,7 @@ function getIntInRange(min: number, max: number) {
 
 const _reportIdToRidCache = new LruCache({
   max: 1000,
+  maxAge: 60 * 1000,
 });
 
 function _getRidFromReportId(report_id: string) {
