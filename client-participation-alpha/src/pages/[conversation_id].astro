@@ -104,6 +104,9 @@ if (initialData) {
 }
 
 const hideHeader = Astro.url.searchParams.get('hide_header');
+
+// Escaping "<" keeps topic and statement text from closing the script element that carries this JSON.
+const initialDataJson = JSON.stringify(initialData ?? null).replace(/</g, '\\u003c');
 ---
 <Layout
   title={surveyDetails?.title ?? "Blacksky People's Assembly"}
@@ -111,18 +114,22 @@ const hideHeader = Astro.url.searchParams.get('hide_header');
   conversation_id={conversation_id}
 >
   {/* Handle JWT token from initial data on client side */}
-  <script define:vars={{ initialData }}>
-    if (initialData && initialData.auth && initialData.auth.token) {
-      // Only store SSR token if there isn't already a conversation-specific token.
-      // This prevents anonymous SSR tokens from overwriting xid tokens on refresh.
-      import('../lib/auth').then(({ setJwtToken, getConversationToken }) => {
-        const conversationId = initialData.conversation?.conversation_id;
-        const existing = conversationId ? getConversationToken(conversationId) : null;
-        if (!existing) {
-          setJwtToken(initialData.auth.token);
-        }
-      });
-    }
+  <script is:inline type="application/json" id="initial-data" set:html={initialDataJson}></script>
+  <script is:inline>
+    (function () {
+      const initialData = JSON.parse(document.getElementById('initial-data').textContent);
+      if (initialData && initialData.auth && initialData.auth.token) {
+        // Only store SSR token if there isn't already a conversation-specific token.
+        // This prevents anonymous SSR tokens from overwriting xid tokens on refresh.
+        import('../lib/auth').then(({ setJwtToken, getConversationToken }) => {
+          const conversationId = initialData.conversation?.conversation_id;
+          const existing = conversationId ? getConversationToken(conversationId) : null;
+          if (!existing) {
+            setJwtToken(initialData.auth.token);
+          }
+        });
+      }
+    })();
   </script>
 
   <div class="container">
