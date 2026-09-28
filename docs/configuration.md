@@ -103,6 +103,8 @@ If you are deploying to a custom domain (not `pol.is`) then you need to update b
 
 The Nginx reverse proxy limits `POST /api/v3/atproto/conversations` by client address: eleven requests at once, then one every three seconds. A refused request gets status `429` with the error `polis_err_atproto_conversation_rate_limited` and a `Retry-After` header. This is why the address above has to be the real one: behind a load balancer that is not listed, all clients share one allowance.
 
+Only the Nginx reverse proxy publishes ports in `docker-compose.yml`. The ports of the other services are published by the development overlay `docker-compose.dev.yml`, which `make start` adds.
+
 ### Email Addresses
 
 - **`ADMIN_EMAIL_DATA_EXPORT`** email address from which data export emails are sent.
