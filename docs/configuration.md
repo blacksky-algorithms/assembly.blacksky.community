@@ -95,6 +95,14 @@ If you are deploying to a custom domain (not `pol.is`) then you need to update b
 - **`STATIC_FILES_ADMIN_PORT`** same as **`STATIC_FILES_PORT`** unless you are hosting client-admin separately from file-server. Useful in local development.
 - **`STATIC_FILES_PARTICIPATION_PORT`** same as **`STATIC_FILES_PORT`** unless you are hosting client-participation separately from file-server. Useful in local development.
 
+### Reverse Proxy
+
+- **`TRUSTED_PROXIES`** Addresses or CIDR ranges, separated by spaces or commas, of the load balancers or proxies that connect to the Nginx reverse proxy. An `X-Forwarded-For` header is accepted only from these peers. From any other peer the header is ignored and the address of the connection is used. The API server and the participation client receive the resulting address as the only entry of `X-Forwarded-For`. If left blank, the private ranges `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16` are used, which suits local development.
+
+  **In production this setting is mandatory.** Set it to the smallest range that covers the addresses your load balancer connects from. Do not rely on the default: it also trusts other containers and processes on the same host. Every listed peer must overwrite `X-Forwarded-For` or append the address of the client it serves. A listed peer that passes the header on unchanged lets a client choose its own address. If nothing runs in front of the Nginx reverse proxy, list an address that never connects to it, such as `127.0.0.1`.
+
+The Nginx reverse proxy limits `POST /api/v3/atproto/conversations` by client address: eleven requests at once, then one every three seconds. A refused request gets status `429` with the error `polis_err_atproto_conversation_rate_limited` and a `Retry-After` header. This is why the address above has to be the real one: behind a load balancer that is not listed, all clients share one allowance.
+
 ### Email Addresses
 
 - **`ADMIN_EMAIL_DATA_EXPORT`** email address from which data export emails are sent.
