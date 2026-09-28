@@ -31,8 +31,8 @@ DETACH_ARG = $(if $(filter true,$(DETACH)),-d,)
 
 # Default compose file args
 export COMPOSE_FILE_ARGS = -f docker-compose.yml -f docker-compose.dev.yml
-COMPOSE_FILE_ARGS += $(if $(POSTGRES_DOCKER),--profile postgres,)
-COMPOSE_FILE_ARGS += $(if $(LOCAL_SERVICES_DOCKER),--profile local-services,)
+COMPOSE_FILE_ARGS += $(if $(filter true,$(POSTGRES_DOCKER)),--profile postgres,)
+COMPOSE_FILE_ARGS += $(if $(filter true,$(LOCAL_SERVICES_DOCKER)),--profile local-services,)
 
 # Set up environment-specific values
 define setup_env
@@ -43,8 +43,8 @@ define setup_env
 	$(eval LOCAL_SERVICES_DOCKER_RAW = $(shell echo $(call parse_env_value,LOCAL_SERVICES_DOCKER) | tr '[:upper:]' '[:lower:]'))
 	$(eval LOCAL_SERVICES_DOCKER = $(call parse_env_bool,$(LOCAL_SERVICES_DOCKER_RAW)))
 	$(eval COMPOSE_FILE_ARGS = $(2))
-	$(eval COMPOSE_FILE_ARGS += $(if $(POSTGRES_DOCKER),--profile postgres,))
-	$(eval COMPOSE_FILE_ARGS += $(if $(LOCAL_SERVICES_DOCKER),--profile local-services,))
+	$(eval COMPOSE_FILE_ARGS += $(if $(filter true,$(POSTGRES_DOCKER)),--profile postgres,))
+	$(eval COMPOSE_FILE_ARGS += $(if $(filter true,$(LOCAL_SERVICES_DOCKER)),--profile local-services,))
 endef
 
 PROD:
