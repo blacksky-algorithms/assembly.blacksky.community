@@ -6,11 +6,17 @@
  * and use the existing participation flow for authentication.
  */
 
-import { getConversationInfo, getZidFromConversationId, createXidRecordByZid } from "../conversation";
+import {
+  createXidRecordIfAbsent,
+  getConversationInfo,
+  getXidRecord,
+  getZidFromConversationId,
+} from "../conversation";
 import { getNextComment } from "../nextComment";
 import { createAnonUser } from "../auth/create-user";
 import { getPidPromise } from "../user";
 import { verifyXidJWT } from "../auth/xid-jwt";
+import { isDuplicateKey } from "../utils/common";
 import logger from "../utils/logger";
 import { failJson } from "../utils/fail";
 import pg from "../db/pg-query";
@@ -30,6 +36,41 @@ async function findReportId(zid: number): Promise<string | null> {
   } catch (err) {
     logger.error("polis_err_embed_conversation_report_id", err);
     return null;
+  }
+}
+
+async function findOrCreateXidUid(zid: number, xid: string): Promise<number> {
+  const existing = await getXidRecord(xid, zid);
+  if (existing.length > 0) {
+    return existing[0].uid;
+  }
+  const uid = await createAnonUser();
+  await createXidRecordIfAbsent(zid, uid, xid);
+  // A concurrent first vote may have created the record for another user.
+  const [record] = await getXidRecord(xid, zid);
+  return record.uid;
+}
+
+async function findOrCreatePid(zid: number, uid: number): Promise<number> {
+  const existingPid = await getPidPromise(zid, uid, true);
+  if (existingPid !== -1) {
+    return existingPid;
+  }
+  try {
+    const created = (await pg.queryP(
+      "INSERT INTO participants (uid, zid, created) VALUES ($1, $2, now_as_millis()) RETURNING pid",
+      [uid, zid]
+    )) as { pid: number }[];
+    return created[0].pid;
+  } catch (err: any) {
+    // A concurrent vote by the same user may have created the participant.
+    const racedPid = isDuplicateKey(err)
+      ? await getPidPromise(zid, uid, true)
+      : -1;
+    if (racedPid === -1) {
+      throw err;
+    }
+    return racedPid;
   }
 }
 
@@ -212,17 +253,7 @@ export async function handle_POST_embed_vote(
       }
 
       // Resolve or create user for this DID
-      const xidRecords = (await pg.queryP(
-        "SELECT uid FROM xids WHERE xid = $1 AND owner = (SELECT org_id FROM conversations WHERE zid = $2)",
-        [did, zid]
-      )) as any[];
-
-      if (xidRecords.length > 0) {
-        uid = xidRecords[0].uid;
-      } else {
-        uid = await createAnonUser();
-        await createXidRecordByZid(zid, uid, did);
-      }
+      uid = await findOrCreateXidUid(zid, did);
     } else {
       // === ANONYMOUS VOTE PATH ===
       // No repo record — create anonymous participant
@@ -231,16 +262,7 @@ export async function handle_POST_embed_vote(
 
     // Get or create participant (skip if already resolved from JWT)
     if (pid === undefined) {
-      const existingPid = await getPidPromise(zid, uid!, true);
-      if (existingPid === -1) {
-        const pidResult = (await pg.queryP(
-          "INSERT INTO participants (uid, zid, created) VALUES ($1, $2, now_as_millis()) RETURNING pid",
-          [uid!, zid]
-        )) as any[];
-        pid = pidResult[0].pid;
-      } else {
-        pid = existingPid;
-      }
+      pid = await findOrCreatePid(zid, uid!);
     }
 
     // Record the vote
