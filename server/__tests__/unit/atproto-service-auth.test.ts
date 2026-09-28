@@ -24,10 +24,12 @@ import {
   buildDidDocument,
   buildServiceAuthClaims,
   createTestIdentity,
+  didWebDocumentUrl,
   encodeJwtSegment,
   generateTestKeypair,
   installPlcFetchMock,
   jsonResponse,
+  randomDidWeb,
   signServiceJwt,
 } from "../setup/atproto-test-helpers";
 
@@ -1218,6 +1220,423 @@ describe("atproto service auth", () => {
     });
   });
 
+  describe("verifyServiceJwt and did:web issuers", () => {
+    let wendy: TestIdentity;
+    let wendyHost: string;
+
+    beforeEach(async () => {
+      wendy = await createTestIdentity({
+        did: randomDidWeb(),
+        handle: "wendy.test.invalid",
+      });
+      wendyHost = wendy.did.slice("did:web:".length);
+      plc.setDocument(wendy.did, wendy.document);
+      jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    });
+
+    function verifyAllowingWeb(token: string) {
+      return verifyServiceJwt(token, {
+        aud: AUD,
+        lxm: LXM,
+        nowSeconds: NOW,
+        allowDidWeb: true,
+      });
+    }
+
+    function expectUnsupported(err: ServiceAuthError) {
+      expect(err).toBeInstanceOf(ServiceAuthError);
+      expect({
+        code: err.code,
+        status: err.status,
+        reason: err.message,
+      }).toEqual({
+        code: "polis_err_atproto_unsupported_did",
+        status: 400,
+        reason: "unsupported_issuer",
+      });
+    }
+
+    test("accepts a valid token when the caller allows did:web", async () => {
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy),
+      });
+
+      const verified = await verifyAllowingWeb(token);
+
+      expect(verified).toEqual({
+        did: wendy.did,
+        handle: "wendy.test.invalid",
+        jti: "jti-fixed-value",
+        tokenId: tokenIdOf(token),
+      });
+      expect(plc.lookups).toEqual([wendyHost]);
+      expect(plc.requests.map((request) => request.url)).toEqual([
+        didWebDocumentUrl(wendy.did),
+      ]);
+    });
+
+    test("accepts a valid ES256 token when the caller allows did:web", async () => {
+      const walter = await createTestIdentity({
+        did: randomDidWeb(),
+        curve: "p256",
+        handle: null,
+      });
+      plc.setDocument(walter.did, walter.document);
+      const token = await signServiceJwt({
+        keypair: walter.keypair,
+        claims: claimsFor(walter),
+      });
+
+      const verified = await verifyAllowingWeb(token);
+
+      expect(walter.keypair.jwtAlg).toBe("ES256");
+      expect(verified).toEqual({
+        did: walter.did,
+        handle: null,
+        jti: "jti-fixed-value",
+        tokenId: tokenIdOf(token),
+      });
+    });
+
+    test.each<{ name: string; allowDidWeb: boolean | undefined }>([
+      { name: "is left out", allowDidWeb: undefined },
+      { name: "is false", allowDidWeb: false },
+      { name: "is text", allowDidWeb: "true" as unknown as boolean },
+      { name: "is a number", allowDidWeb: 1 as unknown as boolean },
+    ])(
+      "refuses a valid token before any lookup when allowDidWeb $name",
+      async ({ allowDidWeb }) => {
+        const token = await signServiceJwt({
+          keypair: wendy.keypair,
+          claims: claimsFor(wendy),
+        });
+
+        const err = await rejection(
+          verifyServiceJwt(token, {
+            aud: AUD,
+            lxm: LXM,
+            nowSeconds: NOW,
+            allowDidWeb,
+          })
+        );
+
+        expectUnsupported(err);
+        expect(plc.lookups).toEqual([]);
+        expect(plc.requests).toEqual([]);
+      }
+    );
+
+    test("refuses a did:web identity that another caller had resolved", async () => {
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy),
+      });
+      await verifyAllowingWeb(token);
+
+      const err = await rejection(verify(token));
+
+      expectUnsupported(err);
+      expect(plc.lookups).toEqual([wendyHost]);
+      expect(plc.requests).toHaveLength(1);
+    });
+
+    test.each([
+      { name: "a host without a dot", iss: "did:web:localhost" },
+      { name: "upper case in the host", iss: "did:web:Wendy.test.invalid" },
+      { name: "an encoded port", iss: "did:web:wendy.test.invalid%3A8443" },
+      { name: "a port", iss: "did:web:wendy.test.invalid:8443" },
+      { name: "path segments", iss: "did:web:wendy.test.invalid:user:wendy" },
+      { name: "percent-encoding", iss: "did:web:wend%79.test.invalid" },
+      { name: "an IPv4 address", iss: "did:web:127.0.0.1" },
+      { name: "a fragment", iss: "did:web:wendy.test.invalid#atproto" },
+      { name: "a trailing dot", iss: "did:web:wendy.test.invalid." },
+      { name: "surrounding whitespace", iss: " did:web:wendy.test.invalid " },
+      { name: "a did:key", iss: "did:key:zQ3shokFTS3brHcDQrn82RUDfCZESWL1" },
+    ])(
+      "refuses an issuer with $name before any lookup although did:web is allowed",
+      async ({ iss }) => {
+        const token = await signServiceJwt({
+          keypair: wendy.keypair,
+          claims: claimsFor(wendy, { iss }),
+        });
+
+        const err = await rejection(verifyAllowingWeb(token));
+
+        expectUnsupported(err);
+        expect(plc.lookups).toEqual([]);
+        expect(plc.requests).toEqual([]);
+      }
+    );
+
+    test.each<{ name: string; overrides: Claims; reason: string }>([
+      {
+        name: "another audience",
+        overrides: { aud: "did:web:other.test.invalid" },
+        reason: "bad_audience",
+      },
+      {
+        name: "the issuer as audience",
+        overrides: { aud: "did:web:wendy.test.invalid" },
+        reason: "bad_audience",
+      },
+      {
+        name: "another method",
+        overrides: { lxm: "community.blacksky.assembly.participate" },
+        reason: "bad_lxm",
+      },
+      {
+        name: "no method",
+        overrides: { lxm: undefined },
+        reason: "missing_lxm",
+      },
+      {
+        name: "an expiry too far ahead",
+        overrides: { exp: NOW + 301 },
+        reason: "exp_too_far_ahead",
+      },
+    ])(
+      "rejects a did:web token with $name before any lookup",
+      async ({ overrides, reason }) => {
+        const token = await signServiceJwt({
+          keypair: wendy.keypair,
+          claims: claimsFor(wendy, overrides),
+        });
+
+        const err = await rejection(verifyAllowingWeb(token));
+
+        expectInvalid(err, reason);
+        expect(plc.lookups).toEqual([]);
+        expect(plc.requests).toEqual([]);
+      }
+    );
+
+    test("rejects an expired did:web token before any lookup", async () => {
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy, { exp: NOW - 11 }),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expect(err.code).toBe("polis_err_atproto_auth_expired");
+      expect(err.status).toBe(401);
+      expect(plc.lookups).toEqual([]);
+    });
+
+    test("applies the list of admitted issuers before any lookup", async () => {
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy),
+      });
+      const admitIssuer = jest.fn((did: string) => did !== wendy.did);
+
+      const err = await rejection(
+        verifyServiceJwt(token, {
+          aud: AUD,
+          lxm: LXM,
+          nowSeconds: NOW,
+          allowDidWeb: true,
+          admitIssuer,
+        })
+      );
+
+      expect(err.code).toBe("polis_err_atproto_conversation_not_eligible");
+      expect(err.status).toBe(403);
+      expect(admitIssuer.mock.calls).toEqual([[wendy.did]]);
+      expect(plc.lookups).toEqual([]);
+      expect(plc.requests).toEqual([]);
+    });
+
+    test("still accepts a did:plc issuer when did:web is allowed", async () => {
+      const token = await signServiceJwt({
+        keypair: alice.keypair,
+        claims: claimsFor(alice),
+      });
+
+      const verified = await verifyAllowingWeb(token);
+
+      expect(verified.did).toBe(alice.did);
+      expect(plc.lookups).toEqual([]);
+      expect(plc.requests.map((request) => request.url)).toEqual([
+        `${PLC_URL}/${alice.did}`,
+      ]);
+    });
+
+    test("rejects a token signed with a key that is not in the document", async () => {
+      const token = await signServiceJwt({
+        keypair: await generateTestKeypair("secp256k1"),
+        claims: claimsFor(wendy),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expectInvalid(err, "bad_signature");
+      expect(plc.requests).toHaveLength(1);
+    });
+
+    test("rejects a token that a did:plc account signed in the name of a did:web", async () => {
+      const token = await signServiceJwt({
+        keypair: alice.keypair,
+        claims: claimsFor(wendy),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expectInvalid(err, "bad_signature");
+    });
+
+    test("refreshes a rotated key once and then accepts", async () => {
+      await verifyAllowingWeb(
+        await signServiceJwt({
+          keypair: wendy.keypair,
+          claims: claimsFor(wendy),
+        })
+      );
+      const rotated = await generateTestKeypair("secp256k1");
+      plc.setDocument(
+        wendy.did,
+        buildDidDocument({
+          did: wendy.did,
+          multikey: rotated.multikey,
+          handle: "wendy-renamed.test.invalid",
+        })
+      );
+      const token = await signServiceJwt({
+        keypair: rotated,
+        claims: claimsFor(wendy),
+      });
+
+      const verified = await verifyAllowingWeb(token);
+
+      expect(verified.handle).toBe("wendy-renamed.test.invalid");
+      expect(plc.requests).toHaveLength(2);
+
+      await verifyAllowingWeb(token);
+
+      expect(plc.requests).toHaveLength(2);
+    });
+
+    test("refreshes once and rejects when the key did not change", async () => {
+      await verifyAllowingWeb(
+        await signServiceJwt({
+          keypair: wendy.keypair,
+          claims: claimsFor(wendy),
+        })
+      );
+      const forged = await signServiceJwt({
+        keypair: await generateTestKeypair("secp256k1"),
+        claims: claimsFor(wendy),
+      });
+
+      const first = await rejection(verifyAllowingWeb(forged));
+      const second = await rejection(verifyAllowingWeb(forged));
+
+      expectInvalid(first, "bad_signature");
+      expectInvalid(second, "bad_signature");
+      expect(plc.requests).toHaveLength(2);
+      expect(plc.lookups).toHaveLength(2);
+    });
+
+    test.each([
+      ["loopback", "127.0.0.1"],
+      ["private", "10.0.0.7"],
+      ["link-local", "169.254.169.254"],
+      ["unique-local", "fd00::7"],
+    ])(
+      "answers 503 without a request when the host has the %s address %s",
+      async (kind, address) => {
+        plc.setAddresses(wendyHost, [address]);
+        const token = await signServiceJwt({
+          keypair: wendy.keypair,
+          claims: claimsFor(wendy),
+        });
+
+        const err = await rejection(verifyAllowingWeb(token));
+
+        expect({
+          code: err.code,
+          status: err.status,
+          reason: err.message,
+        }).toEqual({
+          code: "polis_err_atproto_did_resolution_failed",
+          status: 503,
+          reason: "did_resolution_failed",
+        });
+        expect(plc.lookups).toEqual([wendyHost]);
+        expect(plc.requests).toEqual([]);
+      }
+    );
+
+    test("answers 503 when the host cannot be reached", async () => {
+      plc.setResponder(wendy.did, () => {
+        throw new TypeError("fetch failed");
+      });
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expect(err.code).toBe("polis_err_atproto_did_resolution_failed");
+      expect(err.status).toBe(503);
+    });
+
+    test("answers 401 when the host has no document", async () => {
+      plc.setResponder(wendy.did, () =>
+        jsonResponse({ message: "not found" }, { status: 404 })
+      );
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expectInvalid(err, "issuer_has_no_usable_key");
+    });
+
+    test("answers 401 when the document belongs to another DID", async () => {
+      const mallory = await createTestIdentity({ did: randomDidWeb() });
+      plc.setDocument(
+        wendy.did,
+        buildDidDocument({
+          did: mallory.did,
+          multikey: mallory.keypair.multikey,
+          keyId: "#atproto",
+        })
+      );
+      const token = await signServiceJwt({
+        keypair: mallory.keypair,
+        claims: claimsFor(wendy),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expectInvalid(err, "issuer_has_no_usable_key");
+    });
+
+    test("answers 401 when the document has no #atproto key", async () => {
+      plc.setDocument(
+        wendy.did,
+        buildDidDocument({
+          did: wendy.did,
+          multikey: wendy.keypair.multikey,
+          keyId: `${wendy.did}#atproto_label`,
+        })
+      );
+      const token = await signServiceJwt({
+        keypair: wendy.keypair,
+        claims: claimsFor(wendy),
+      });
+
+      const err = await rejection(verifyAllowingWeb(token));
+
+      expectInvalid(err, "issuer_has_no_usable_key");
+    });
+  });
+
   describe("atprotoServiceAuth middleware", () => {
     function respond() {
       const res = {
@@ -1569,6 +1988,24 @@ describe("atproto service auth", () => {
       );
 
       expectFailure(res, next, 400, "polis_err_atproto_unsupported_did");
+    });
+
+    test("answers 400 for a valid token of a did:web account without any lookup", async () => {
+      const wendy = await createTestIdentity({ did: randomDidWeb() });
+      plc.setDocument(wendy.did, wendy.document);
+      const token = await currentToken(wendy);
+      const req: { headers: Record<string, string>; p?: Claims } = {
+        headers: { authorization: `Bearer ${token}` },
+      };
+      const res = respond();
+      const next = jest.fn();
+
+      await atprotoServiceAuth(LXM)(req, res, next);
+
+      expectFailure(res, next, 400, "polis_err_atproto_unsupported_did");
+      expect(req.p).toBeUndefined();
+      expect(plc.lookups).toEqual([]);
+      expect(plc.requests).toEqual([]);
     });
 
     test("answers 503 polis_err_atproto_did_resolution_failed when the directory is down", async () => {

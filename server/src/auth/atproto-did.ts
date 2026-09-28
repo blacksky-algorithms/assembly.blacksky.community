@@ -2,12 +2,23 @@ import { parseMultikey } from "@atproto/crypto";
 import LruCache from "lru-cache";
 import Config from "../config";
 import logger from "../utils/logger";
+import {
+  OUTBOUND_TIMEOUT_MS,
+  OutboundRequestError,
+  OutboundResponse,
+  discardBody,
+  guardedFetch,
+  readBody,
+} from "./outbound-guard";
 
 export type AtprotoIdentity = {
   did: string;
   signingKey: string;
   handle: string | null;
+  pds: string | null;
 };
+
+export type AtprotoDidOptions = { allowDidWeb?: boolean };
 
 export type AtprotoDidErrorCode =
   | "unsupported_did"
@@ -29,12 +40,15 @@ type CacheEntry =
   | { failure: { code: AtprotoDidErrorCode; message: string } };
 
 const DID_PLC_PATTERN = /^did:plc:[a-z2-7]{24}$/;
-const HANDLE_PATTERN =
+const DID_WEB_PREFIX = "did:web:";
+const DID_WEB_DOCUMENT_PATH = "/.well-known/did.json";
+const DID_WEB_DOCUMENT_TYPES = "application/did+ld+json, application/json";
+const HOSTNAME_PATTERN =
   /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/;
-const MAX_HANDLE_LENGTH = 253;
+const MAX_HOSTNAME_LENGTH = 253;
 const HANDLE_URI_PREFIX = "at://";
-const FETCH_TIMEOUT_MS = 3000;
-const MAX_BODY_BYTES = 64 * 1024;
+const PDS_SERVICE_ID = "#atproto_pds";
+const PDS_SERVICE_TYPE = "AtprotoPersonalDataServer";
 const SUCCESS_TTL_MS = 5 * 60 * 1000;
 const FAILURE_TTL_MS = 30 * 1000;
 const FORCED_REFRESH_INTERVAL_MS = 30 * 1000;
@@ -57,6 +71,28 @@ export function isSupportedAtprotoDid(did: unknown): did is string {
   return typeof did === "string" && DID_PLC_PATTERN.test(did);
 }
 
+function isHostname(value: string): boolean {
+  return value.length <= MAX_HOSTNAME_LENGTH && HOSTNAME_PATTERN.test(value);
+}
+
+export function isCanonicalDidWeb(did: unknown): did is string {
+  return (
+    typeof did === "string" &&
+    did.startsWith(DID_WEB_PREFIX) &&
+    isHostname(did.slice(DID_WEB_PREFIX.length))
+  );
+}
+
+export function isResolvableAtprotoDid(
+  did: unknown,
+  opts?: AtprotoDidOptions
+): did is string {
+  return (
+    isSupportedAtprotoDid(did) ||
+    (opts?.allowDidWeb === true && isCanonicalDidWeb(did))
+  );
+}
+
 export function clearAtprotoIdentityCache(): void {
   identityCache.reset();
   recentForcedRefreshes.reset();
@@ -66,8 +102,9 @@ export function clearAtprotoIdentityCache(): void {
   lookupWindow.refused = 0;
 }
 
-// Every token naming a new DID costs one request to the directory, and the
-// caller is not known to be genuine until that request has been answered.
+// Every token naming a new DID costs one request to the directory or to the
+// host of the DID, and the caller is not known to be genuine until that
+// request has been answered.
 function admitLookup(): boolean {
   const now = Date.now();
   if (now - lookupWindow.start >= LOOKUP_WINDOW_MS) {
@@ -107,9 +144,38 @@ function extractHandle(alsoKnownAs: unknown): string | null {
   );
   if (typeof entry !== "string") return null;
   const handle = entry.slice(HANDLE_URI_PREFIX.length).toLowerCase();
-  return handle.length <= MAX_HANDLE_LENGTH && HANDLE_PATTERN.test(handle)
-    ? handle
-    : null;
+  return isHostname(handle) ? handle : null;
+}
+
+function extractPds(did: string, services: unknown): string | null {
+  if (!Array.isArray(services)) return null;
+  const service = services.find(
+    (candidate) =>
+      isRecord(candidate) &&
+      (candidate.id === PDS_SERVICE_ID ||
+        candidate.id === `${did}${PDS_SERVICE_ID}`)
+  );
+  if (
+    !isRecord(service) ||
+    service.type !== PDS_SERVICE_TYPE ||
+    typeof service.serviceEndpoint !== "string"
+  ) {
+    return null;
+  }
+  let endpoint: URL;
+  try {
+    endpoint = new URL(service.serviceEndpoint);
+  } catch {
+    return null;
+  }
+  const isBareOrigin =
+    (endpoint.protocol === "https:" || endpoint.protocol === "http:") &&
+    endpoint.username === "" &&
+    endpoint.password === "" &&
+    endpoint.pathname === "/" &&
+    endpoint.search === "" &&
+    endpoint.hash === "";
+  return isBareOrigin ? endpoint.origin : null;
 }
 
 function parseIdentity(did: string, body: string): AtprotoIdentity {
@@ -153,74 +219,68 @@ function parseIdentity(did: string, body: string): AtprotoIdentity {
     did,
     signingKey: `did:key:${method.publicKeyMultibase}`,
     handle: extractHandle(document.alsoKnownAs),
+    pds: extractPds(did, document.service),
   };
 }
 
-async function discardBody(response: Response): Promise<void> {
-  try {
-    await response.body?.cancel();
-  } catch (err) {
-    logger.debug("atproto DID lookup: could not discard response body", err);
+async function requestFromDirectory(did: string): Promise<OutboundResponse> {
+  const { plcUrl } = Config.getAtprotoCreateSettings();
+  const response = await fetch(`${plcUrl}/${did}`, {
+    headers: { accept: "application/json" },
+    redirect: "error",
+    signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
+  });
+  if (response.status !== 200) {
+    await discardBody(response);
+    return { status: response.status, body: "" };
   }
+  return { status: response.status, body: await readBody(response) };
 }
 
-async function readBody(response: Response): Promise<string> {
-  const declaredLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
-    await discardBody(response);
-    throw invalidDocument("DID document is too large");
-  }
-  if (!response.body) {
-    return "";
-  }
-
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    received += value.byteLength;
-    if (received > MAX_BODY_BYTES) {
-      await reader.cancel();
-      throw invalidDocument("DID document is too large");
-    }
-    chunks.push(value);
-  }
-  return Buffer.concat(chunks).toString("utf8");
+function requestFromHost(did: string): Promise<OutboundResponse> {
+  const host = did.slice(DID_WEB_PREFIX.length);
+  return guardedFetch(`https://${host}${DID_WEB_DOCUMENT_PATH}`, {
+    accept: DID_WEB_DOCUMENT_TYPES,
+  });
 }
 
 async function fetchIdentity(did: string): Promise<AtprotoIdentity> {
-  const { plcUrl } = Config.getAtprotoCreateSettings();
+  const fromHost = did.startsWith(DID_WEB_PREFIX);
+  const source = fromHost ? "DID host" : "DID directory";
   try {
-    const response = await fetch(`${plcUrl}/${did}`, {
-      headers: { accept: "application/json" },
-      redirect: "error",
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-    if (response.status === 404 || response.status === 410) {
-      await discardBody(response);
+    const { status, body } = fromHost
+      ? await requestFromHost(did)
+      : await requestFromDirectory(did);
+    if (status === 404 || status === 410) {
       throw invalidDocument(
-        `DID directory has no active document (status ${response.status})`
+        `${source} has no active document (status ${status})`
       );
     }
-    if (response.status !== 200) {
-      await discardBody(response);
+    if (status !== 200) {
       throw new AtprotoDidError(
         "resolution_failed",
-        `DID directory answered with status ${response.status}`
+        `${source} answered with status ${status}`
       );
     }
-    return parseIdentity(did, await readBody(response));
+    return parseIdentity(did, body);
   } catch (err) {
     if (err instanceof AtprotoDidError) throw err;
+    if (err instanceof OutboundRequestError) {
+      if (err.code === "too_large") {
+        throw invalidDocument("DID document is too large");
+      }
+      throw new AtprotoDidError(
+        "resolution_failed",
+        `${source} request failed (${err.message})`
+      );
+    }
     const cause =
       isRecord(err) && typeof err.name === "string"
         ? err.name
         : "unknown error";
     throw new AtprotoDidError(
       "resolution_failed",
-      `DID directory request failed (${cause})`
+      `${source} request failed (${cause})`
     );
   }
 }
@@ -272,12 +332,14 @@ function lookup(
 
 export async function resolveAtprotoIdentityWithSource(
   did: string,
-  opts?: { forceRefresh?: boolean }
+  opts?: AtprotoDidOptions & { forceRefresh?: boolean }
 ): Promise<{ identity: AtprotoIdentity; cached: boolean }> {
-  if (!isSupportedAtprotoDid(did)) {
+  if (!isResolvableAtprotoDid(did, opts)) {
     throw new AtprotoDidError(
       "unsupported_did",
-      "only did:plc identifiers are supported"
+      opts?.allowDidWeb === true
+        ? "only did:plc and did:web identifiers are supported"
+        : "only did:plc identifiers are supported"
     );
   }
 
@@ -315,7 +377,7 @@ export async function resolveAtprotoIdentityWithSource(
 
 export async function resolveAtprotoIdentity(
   did: string,
-  opts?: { forceRefresh?: boolean }
+  opts?: AtprotoDidOptions & { forceRefresh?: boolean }
 ): Promise<AtprotoIdentity> {
   const { identity } = await resolveAtprotoIdentityWithSource(did, opts);
   return identity;

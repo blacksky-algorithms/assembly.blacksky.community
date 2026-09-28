@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import dns from "node:dns";
+import net from "node:net";
 import { P256Keypair, Secp256k1Keypair } from "@atproto/crypto";
 import { clearAtprotoIdentityCache } from "../../src/auth/atproto-did";
 import Config from "../../src/config";
@@ -28,14 +30,22 @@ export type PlcResponder = (
 
 export type PlcFetchMock = {
   requests: Array<{ url: string; init: RequestInit | undefined }>;
+  lookups: string[];
   setDocument(did: string, document: TestDidDocument): void;
   setResponder(did: string, responder: PlcResponder): void;
+  setUrlResponder(url: string, responder: PlcResponder): void;
+  setAddresses(host: string, addresses: string[]): void;
+  setResolver(host: string, resolver: () => Promise<string[]>): void;
   remove(did: string): void;
   restore(): void;
 };
 
+export const TEST_PUBLIC_ADDRESS = "93.184.215.14";
+
 const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 const DID_KEY_PREFIX = "did:key:";
+const DID_WEB_PREFIX = "did:web:";
+const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
 
 export async function generateTestKeypair(
   curve: TestCurve = "secp256k1"
@@ -60,6 +70,14 @@ export function randomDidPlc(): string {
     (byte) => BASE32_ALPHABET[byte % BASE32_ALPHABET.length]
   ).join("");
   return `did:plc:${suffix}`;
+}
+
+export function randomDidWeb(): string {
+  return `${DID_WEB_PREFIX}host-${randomBytes(8).toString("hex")}.test.invalid`;
+}
+
+export function didWebDocumentUrl(did: string): string {
+  return `https://${did.slice(DID_WEB_PREFIX.length)}/.well-known/did.json`;
 }
 
 export function buildDidDocument(params: {
@@ -173,54 +191,123 @@ export function installPlcFetchMock(
   options: { fallback?: typeof fetch } = {}
 ): PlcFetchMock {
   const originalFetch = globalThis.fetch;
+  const originalLookup = dns.promises.lookup;
   const responders = new Map<string, PlcResponder>();
+  const urlResponders = new Map<string, PlcResponder>();
+  const resolvers = new Map<string, () => Promise<string[]>>();
   const requests: PlcFetchMock["requests"] = [];
+  const lookups: string[] = [];
 
+  const setUrlResponder = (url: string, responder: PlcResponder) => {
+    urlResponders.set(url, responder);
+    const host = new URL(url).hostname;
+    if (!resolvers.has(host)) {
+      resolvers.set(host, async () => [TEST_PUBLIC_ADDRESS]);
+    }
+  };
+  const setResponder = (did: string, responder: PlcResponder) => {
+    if (did.startsWith(DID_WEB_PREFIX)) {
+      setUrlResponder(didWebDocumentUrl(did), responder);
+    } else {
+      responders.set(did, responder);
+    }
+  };
   const serveDocument = (did: string, document: TestDidDocument) => {
-    responders.set(did, () => jsonResponse(document));
+    setResponder(did, () => jsonResponse(document));
   };
   for (const [did, document] of Object.entries(documents)) {
     serveDocument(did, document);
   }
+
+  const respond = async (
+    url: string,
+    init: RequestInit | undefined
+  ): Promise<Response | null> => {
+    const prefix = `${Config.getAtprotoCreateSettings().plcUrl}/`;
+    if (url.startsWith(prefix)) {
+      requests.push({ url, init });
+      const did = decodeURIComponent(url.slice(prefix.length));
+      const responder = responders.get(did);
+      return responder
+        ? responder(init)
+        : jsonResponse(
+            { message: `DID not registered: ${did}` },
+            { status: 404 }
+          );
+    }
+    const responder = urlResponders.get(url);
+    if (!responder) return null;
+    requests.push({ url, init });
+    return responder(init);
+  };
 
   const mockedFetch = async (
     input: unknown,
     init?: RequestInit
   ): Promise<Response> => {
     const url = requestUrl(input);
-    const prefix = `${Config.getAtprotoCreateSettings().plcUrl}/`;
-    if (!url.startsWith(prefix)) {
+    const response = await respond(url, init);
+    if (response === null) {
       if (options.fallback) {
         return options.fallback(input as RequestInfo, init);
       }
       throw new Error(`unexpected fetch in a test: ${url}`);
     }
-    requests.push({ url, init });
-    const did = decodeURIComponent(url.slice(prefix.length));
-    const responder = responders.get(did);
-    if (!responder) {
-      return jsonResponse(
-        { message: `DID not registered: ${did}` },
-        { status: 404 }
-      );
+    const location = response.headers.get("location");
+    if (!REDIRECT_STATUSES.includes(response.status) || location === null) {
+      return response;
     }
-    return responder(init);
+    if (init?.redirect === "error") {
+      throw new TypeError("fetch failed");
+    }
+    if (init?.redirect === "manual") {
+      return response;
+    }
+    return mockedFetch(new URL(location, url).toString(), init);
+  };
+
+  const mockedLookup = async (host: string) => {
+    lookups.push(host);
+    const resolver = resolvers.get(host);
+    if (!resolver) {
+      throw Object.assign(new Error(`getaddrinfo ENOTFOUND ${host}`), {
+        code: "ENOTFOUND",
+        syscall: "getaddrinfo",
+        hostname: host,
+      });
+    }
+    return (await resolver()).map((address) => ({
+      address,
+      family: net.isIP(address),
+    }));
   };
 
   clearAtprotoIdentityCache();
   globalThis.fetch = mockedFetch as typeof fetch;
+  dns.promises.lookup = mockedLookup as typeof dns.promises.lookup;
 
   return {
     requests,
+    lookups,
     setDocument: serveDocument,
-    setResponder: (did, responder) => {
-      responders.set(did, responder);
+    setResponder,
+    setUrlResponder,
+    setAddresses: (host, addresses) => {
+      resolvers.set(host, async () => addresses);
+    },
+    setResolver: (host, resolver) => {
+      resolvers.set(host, resolver);
     },
     remove: (did) => {
-      responders.delete(did);
+      if (did.startsWith(DID_WEB_PREFIX)) {
+        urlResponders.delete(didWebDocumentUrl(did));
+      } else {
+        responders.delete(did);
+      }
     },
     restore: () => {
       globalThis.fetch = originalFetch;
+      dns.promises.lookup = originalLookup;
       clearAtprotoIdentityCache();
     },
   };
