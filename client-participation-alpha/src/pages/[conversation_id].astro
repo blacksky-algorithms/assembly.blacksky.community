@@ -103,6 +103,8 @@ if (initialData) {
   var importanceEnabled = initialData.conversation.importance_enabled || false;
 }
 
+const descriptionLines = (surveyDetails?.description ?? '').split(/\r?\n/);
+
 const hideHeader = Astro.url.searchParams.get('hide_header');
 
 // Escaping "<" keeps topic and statement text from closing the script element that carries this JSON.
@@ -146,7 +148,7 @@ const initialDataJson = JSON.stringify(initialData ?? null).replace(/</g, '\\u00
           {surveyDetails?.title}
           {!isConversationActive && <span class="closed-badge">closed</span>}
         </h1>
-        <p class="description" set:html={surveyDetails?.description?.replace(/\n/g, '<br>')}></p>
+        <p class="description">{descriptionLines.map((line, index) => <>{index > 0 && <br />}{line}</>)}</p>
 
         {isConversationActive ? (
           <ConversationGate
