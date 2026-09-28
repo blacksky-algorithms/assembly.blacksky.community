@@ -1,5 +1,5 @@
 import Layout from './lander-layout'
-import { Heading, Box, Text, Link } from 'theme-ui'
+import { Heading, Box, Link } from 'theme-ui'
 
 const Index = () => {
   return (
