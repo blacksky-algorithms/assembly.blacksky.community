@@ -39,10 +39,12 @@ import {
   TestIdentity,
   buildServiceAuthClaims,
   createTestIdentity,
+  didWebDocumentUrl,
   generateTestKeypair,
   installPlcFetchMock,
   jsonResponse,
   randomDidPlc,
+  randomDidWeb,
   signServiceJwt,
 } from "../setup/atproto-test-helpers";
 import { pool } from "../setup/db-test-helpers";
@@ -728,6 +730,28 @@ describe("POST /api/v3/atproto/conversations", () => {
         failureBody("polis_err_atproto_unsupported_did", 400)
       );
       await expectNothingCreated(identity, body);
+    });
+
+    test("answers 400 for a valid token of a did:web account without any lookup", async () => {
+      const identity = await createTestIdentity({ did: randomDidWeb() });
+      plc.setDocument(identity.did, identity.document);
+      identities.push(identity);
+      const host = identity.did.slice("did:web:".length);
+      const body = buildBody(identity);
+
+      const response = await create(identity, body);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(
+        failureBody("polis_err_atproto_unsupported_did", 400)
+      );
+      await expectNothingCreated(identity, body);
+      expect(plc.lookups.filter((name) => name === host)).toEqual([]);
+      expect(
+        plc.requests.filter(
+          (request) => request.url === didWebDocumentUrl(identity.did)
+        )
+      ).toEqual([]);
     });
 
     test("answers 503 when the DID document cannot be fetched", async () => {

@@ -5,7 +5,7 @@ import { failJson } from "../utils/fail";
 import {
   AtprotoDidError,
   AtprotoIdentity,
-  isSupportedAtprotoDid,
+  isResolvableAtprotoDid,
   resolveAtprotoIdentityWithSource,
 } from "./atproto-did";
 
@@ -78,7 +78,7 @@ function decodeJsonSegment(segment: string): Record<string, unknown> | null {
 
 function checkClaims(
   token: string,
-  opts: { aud: string; lxm: string; nowSeconds?: number }
+  opts: { aud: string; lxm: string; nowSeconds?: number; allowDidWeb: boolean }
 ): VerifiedClaims {
   if (typeof token !== "string" || token.length === 0) {
     throw invalid("malformed_token");
@@ -125,7 +125,7 @@ function checkClaims(
   if (typeof iss !== "string") {
     throw invalid("missing_iss");
   }
-  if (!isSupportedAtprotoDid(iss)) {
+  if (!isResolvableAtprotoDid(iss, opts)) {
     throw new ServiceAuthError(
       "polis_err_atproto_unsupported_did",
       400,
@@ -187,10 +187,10 @@ function checkClaims(
 
 async function resolveIssuer(
   did: string,
-  forceRefresh: boolean
+  opts: { forceRefresh: boolean; allowDidWeb: boolean }
 ): Promise<{ identity: AtprotoIdentity; cached: boolean }> {
   try {
-    return await resolveAtprotoIdentityWithSource(did, { forceRefresh });
+    return await resolveAtprotoIdentityWithSource(did, opts);
   } catch (err) {
     if (!(err instanceof AtprotoDidError)) throw err;
     if (err.code === "unsupported_did") {
@@ -238,6 +238,7 @@ export async function verifyServiceJwt(
     lxm: string;
     nowSeconds?: number;
     admitIssuer?: (did: string) => boolean;
+    allowDidWeb?: boolean;
   }
 ): Promise<{
   did: string;
@@ -245,7 +246,8 @@ export async function verifyServiceJwt(
   jti: string | null;
   tokenId: string;
 }> {
-  const claims = checkClaims(token, opts);
+  const allowDidWeb = opts.allowDidWeb === true;
+  const claims = checkClaims(token, { ...opts, allowDidWeb });
   if (opts.admitIssuer && !opts.admitIssuer(claims.iss)) {
     throw new ServiceAuthError(
       "polis_err_atproto_conversation_not_eligible",
@@ -255,10 +257,16 @@ export async function verifyServiceJwt(
     );
   }
 
-  let issuer = await resolveIssuer(claims.iss, false);
+  let issuer = await resolveIssuer(claims.iss, {
+    forceRefresh: false,
+    allowDidWeb,
+  });
   let outcome = await checkSignature(claims, issuer.identity.signingKey);
   if (outcome !== "ok" && issuer.cached) {
-    const refreshed = await resolveIssuer(claims.iss, true);
+    const refreshed = await resolveIssuer(claims.iss, {
+      forceRefresh: true,
+      allowDidWeb,
+    });
     if (refreshed.identity.signingKey !== issuer.identity.signingKey) {
       outcome = await checkSignature(claims, refreshed.identity.signingKey);
     }
