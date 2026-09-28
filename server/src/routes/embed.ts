@@ -126,7 +126,11 @@ export async function handle_POST_embed_vote(
     if (authHeader?.startsWith("Bearer ")) {
       try {
         const claims = verifyXidJWT(authHeader.slice(7));
-        if (claims.uid && claims.pid && claims.conversation_id === conversation_id) {
+        if (
+          Number.isInteger(claims.uid) &&
+          Number.isInteger(claims.pid) &&
+          claims.conversation_id === conversation_id
+        ) {
           uid = claims.uid;
           pid = claims.pid;
           did = claims.xid || null;
