@@ -205,6 +205,7 @@ function signAdminToken(uid: number, did: string, privateKey: string): string {
       sub: did,
       uid,
       type: "atproto_admin",
+      proof: "atproto_service_auth",
       iss: "assembly.blacksky.community",
       aud: "users",
       iat: now,

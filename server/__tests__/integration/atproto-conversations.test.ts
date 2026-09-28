@@ -170,6 +170,7 @@ const actualGenerateTokenP = (
 
 const ROUTE = "/api/v3/atproto/conversations";
 const LXM = "community.blacksky.assembly.createConversation";
+const LOGIN_LXM = "community.blacksky.assembly.createSession";
 const SERVICE_DID = "did:web:assembly.test.invalid";
 const PLC_URL = "https://plc.test.invalid";
 const CONVERSATION_COLLECTION = "community.blacksky.assembly.conversation";
@@ -298,6 +299,17 @@ async function create(
   body: unknown
 ): Promise<ApiResponse> {
   return send(body, await tokenFor(identity));
+}
+
+async function signIn(identity: TestIdentity): Promise<ApiResponse> {
+  const response = await agent
+    .post("/api/v3/auth/atproto-login")
+    .set(
+      "Authorization",
+      `Bearer ${await tokenFor(identity, { lxm: LOGIN_LXM })}`
+    )
+    .send({});
+  return { status: response.status, body: response.body, text: response.text };
 }
 
 function failureBody(code: string, status: number) {
@@ -648,20 +660,18 @@ describe("POST /api/v3/atproto/conversations", () => {
     test("answers 401 for a token issued by atproto-login", async () => {
       const identity = await newIdentity();
       const body = buildBody(identity);
-      const login = await agent.post("/api/v3/auth/atproto-login").send({
-        did: identity.did,
-        handle: identity.handle,
-      });
+      const login = await signIn(identity);
       expect(login.status).toBe(200);
-      const decoded = jwt.decode(login.body.token, { complete: true });
+      const decoded = jwt.decode(String(login.body.token), { complete: true });
       expect(decoded?.header.alg).toBe("RS256");
       expect(decoded?.payload).toMatchObject({
         sub: identity.did,
         uid: login.body.uid,
         type: "atproto_admin",
+        proof: "atproto_service_auth",
       });
 
-      const response = await send(body, login.body.token);
+      const response = await send(body, String(login.body.token));
 
       expect(response.status).toBe(401);
       expect(response.body).toEqual(
@@ -1260,12 +1270,9 @@ describe("POST /api/v3/atproto/conversations", () => {
 
     test("keeps the owner apart from the account made by atproto-login", async () => {
       const identity = await newIdentity();
-      const login = await agent.post("/api/v3/auth/atproto-login").send({
-        did: identity.did,
-        handle: identity.handle,
-      });
+      const login = await signIn(identity);
       expect(login.status).toBe(200);
-      const loginUid: number = login.body.uid;
+      const loginUid = login.body.uid;
 
       const response = await create(identity, buildBody(identity, 1));
 

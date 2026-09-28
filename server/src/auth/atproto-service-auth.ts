@@ -13,6 +13,7 @@ export type ServiceAuthErrorCode =
   | "polis_err_atproto_auth_missing"
   | "polis_err_atproto_auth_invalid"
   | "polis_err_atproto_auth_expired"
+  | "polis_err_atproto_auth_replayed"
   | "polis_err_atproto_unsupported_did"
   | "polis_err_atproto_did_resolution_failed"
   | "polis_err_atproto_conversation_not_eligible";
@@ -51,7 +52,10 @@ const FORBIDDEN_TYPS = ["at+jwt", "refresh+jwt", "dpop+jwt"];
 const EXPIRY_SKEW_SECONDS = 10;
 const MAX_SECONDS_UNTIL_EXPIRY = 300;
 const MAX_IAT_SECONDS_AHEAD = 60;
+export const MAX_SECONDS_TOKEN_IS_ACCEPTED =
+  MAX_SECONDS_UNTIL_EXPIRY + EXPIRY_SKEW_SECONDS;
 const BEARER_PATTERN = /^Bearer ([^\s]+)$/i;
+const CLAIMED_DID_PATTERN = /^did:[a-z]+:[A-Za-z0-9._:%-]{1,240}$/;
 
 function invalid(reason: string): ServiceAuthError {
   return new ServiceAuthError("polis_err_atproto_auth_invalid", 401, reason);
@@ -74,6 +78,24 @@ function decodeJsonSegment(segment: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+export function readBearerToken(authorization: string): string {
+  const bearer = BEARER_PATTERN.exec(authorization.trim());
+  if (!bearer) {
+    throw invalid("not_a_bearer_token");
+  }
+  return bearer[1];
+}
+
+export function readClaimedIssuer(authorization: string): string | null {
+  const bearer = BEARER_PATTERN.exec(authorization.trim());
+  const segments = bearer ? bearer[1].split(".") : [];
+  if (segments.length !== 3) {
+    return null;
+  }
+  const iss = decodeJsonSegment(segments[1])?.iss;
+  return typeof iss === "string" && CLAIMED_DID_PATTERN.test(iss) ? iss : null;
 }
 
 function checkClaims(
@@ -301,12 +323,8 @@ export function atprotoServiceAuth(lxm: string) {
 
     let verified: { did: string; handle: string | null; tokenId: string };
     try {
-      const bearer = BEARER_PATTERN.exec(authorization.trim());
-      if (!bearer) {
-        throw invalid("not_a_bearer_token");
-      }
       const settings = Config.getAtprotoCreateSettings();
-      verified = await verifyServiceJwt(bearer[1], {
+      verified = await verifyServiceJwt(readBearerToken(authorization), {
         aud: settings.serviceDid,
         lxm,
         admitIssuer:

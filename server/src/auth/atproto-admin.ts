@@ -1,11 +1,18 @@
 import jwt from "jsonwebtoken";
+import LruCache from "lru-cache";
 import fs from "node:fs";
 import pgLib from "pg";
 import Config from "../config";
 import logger from "../utils/logger";
-import { getOrCreateUserIDFromOidcSub } from "./create-user";
+import {
+  MAX_SECONDS_TOKEN_IS_ACCEPTED,
+  ServiceAuthError,
+  readBearerToken,
+  readClaimedIssuer,
+  verifyServiceJwt,
+} from "./atproto-service-auth";
 import { failJson } from "../utils/fail";
-import pg from "../db/pg-query";
+import pg, { TransactionQuery, withTransaction } from "../db/pg-query";
 import { isPolisDev } from "../utils/common";
 
 // eslint-disable-next-line no-restricted-properties
@@ -52,8 +59,41 @@ function getPrivateKey(): string {
 }
 
 export const ATPROTO_ADMIN_JWT_TYPE = "atproto_admin";
+export const ATPROTO_ADMIN_PROOF = "atproto_service_auth";
+export const ATPROTO_LOGIN_LXM = "community.blacksky.assembly.createSession";
 
-function issueAdminJWT(uid: number, did: string): string {
+const MAX_HNAME_LENGTH = 746;
+const MAX_USERNAME_LENGTH = 128;
+const MAX_EMAIL_LENGTH = 256;
+const UNIQUE_VIOLATION = "23505";
+const MAX_USED_TOKENS = 10000;
+
+const usedLoginTokens = new LruCache<string, boolean>({
+  max: MAX_USED_TOKENS,
+  maxAge: MAX_SECONDS_TOKEN_IS_ACCEPTED * 1000,
+});
+
+type LoginParams = {
+  did?: string;
+  handle?: string;
+  email?: string;
+  displayName?: string;
+  avatarUrl?: string;
+};
+
+type ProvenAccount = { did: string; handle: string | null };
+
+type JsonResponse = {
+  status: (code: number) => { json: (body: unknown) => void };
+};
+
+export function logAtprotoLoginMode(): void {
+  logger.warn("atproto admin login proof mode", {
+    mode: Config.getAtprotoLoginSettings().proof,
+  });
+}
+
+function issueAdminJWT(uid: number, did: string, proven: boolean): string {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     sub: did,
@@ -63,6 +103,7 @@ function issueAdminJWT(uid: number, did: string): string {
     aud: "users",
     iat: now,
     exp: now + JWT_EXPIRATION_SECONDS,
+    ...(proven ? { proof: ATPROTO_ADMIN_PROOF } : {}),
   };
 
   return jwt.sign(payload, getPrivateKey(), { algorithm: JWT_ALGORITHM });
@@ -75,7 +116,16 @@ export function verifyAtprotoAdminJWT(token: string): any {
   const keyPath = Config.jwtPublicKeyPath;
   if (!keyPath) throw new Error("JWT_PUBLIC_KEY_PATH not configured");
   const publicKey = fs.readFileSync(keyPath, "utf8");
-  return jwt.verify(token, publicKey, { algorithms: [JWT_ALGORITHM] });
+  const payload = jwt.verify(token, publicKey, {
+    algorithms: [JWT_ALGORITHM],
+  }) as { proof?: unknown };
+  if (
+    Config.getAtprotoLoginSettings().proof === "required" &&
+    payload.proof !== ATPROTO_ADMIN_PROOF
+  ) {
+    throw new Error("admin token was issued without proof of the account");
+  }
+  return payload;
 }
 
 /**
@@ -90,61 +140,191 @@ export function isAtprotoAdminJWT(token: string): boolean {
   }
 }
 
-/**
- * Look up existing user by DID in oidc_user_mappings.
- * Checks both bare DID and AIP-prefixed format (oauth2|atproto|did:plc:xxx).
- */
-async function findUidByDid(did: string): Promise<number | null> {
-  const rows = (await pg.queryP(
-    "SELECT uid FROM oidc_user_mappings WHERE oidc_sub = $1 OR oidc_sub = $2 LIMIT 1",
-    [did, `${AIP_DID_PREFIX}${did}`]
-  )) as any[];
+function cut(value: string, maxLength: number): string {
+  return Array.from(value).slice(0, maxLength).join("");
+}
 
+async function findUidByDid(
+  query: TransactionQuery,
+  did: string
+): Promise<number | null> {
+  const rows = await query(
+    "SELECT uid FROM oidc_user_mappings WHERE oidc_sub = $1 OR oidc_sub = $2 ORDER BY (oidc_sub = $1) DESC LIMIT 1;",
+    [did, `${AIP_DID_PREFIX}${did}`]
+  );
   return rows.length > 0 ? rows[0].uid : null;
+}
+
+async function findOrCreateUser(
+  did: string,
+  profile: { handle: string | null; displayName?: string }
+): Promise<{ uid: number; created: boolean }> {
+  const hname = cut(
+    profile.displayName || profile.handle || did,
+    MAX_HNAME_LENGTH
+  );
+  const username = cut(profile.handle || did, MAX_USERNAME_LENGTH);
+  try {
+    return await withTransaction(async (query) => {
+      await query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0));", [
+        did,
+      ]);
+      const existing = await findUidByDid(query, did);
+      if (existing !== null) {
+        return { uid: existing, created: false };
+      }
+      const users = await query(
+        "INSERT INTO users (hname, username, is_owner, created) VALUES ($1, $2, true, default) RETURNING uid;",
+        [hname, username]
+      );
+      const uid: number = users[0].uid;
+      await query(
+        "INSERT INTO oidc_user_mappings (oidc_sub, uid) VALUES ($1, $2);",
+        [did, uid]
+      );
+      return { uid, created: true };
+    });
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code !== UNIQUE_VIOLATION) {
+      throw err;
+    }
+    const existing = await withTransaction((query) =>
+      findUidByDid(query, did)
+    );
+    if (existing === null) {
+      throw err;
+    }
+    return { uid: existing, created: false };
+  }
+}
+
+async function storeEmail(
+  uid: number,
+  email: string | undefined
+): Promise<void> {
+  if (!email || !email.includes("@") || email.length > MAX_EMAIL_LENGTH) {
+    return;
+  }
+  try {
+    await withTransaction((query) =>
+      query(
+        "UPDATE users SET email = $2 WHERE uid = $1 AND email IS NULL AND NOT EXISTS (SELECT 1 FROM users WHERE lower(email) = lower($2));",
+        [uid, email]
+      )
+    );
+  } catch (err) {
+    // The database error quotes the address, so only its code is logged.
+    logger.warn("atproto admin login: email was not stored", {
+      uid,
+      code: (err as { code?: unknown } | null)?.code,
+    });
+  }
+}
+
+class LoginDidMismatch extends Error {
+  did: string;
+
+  constructor(did: string) {
+    super("polis_err_atproto_login_did_mismatch");
+    this.name = "LoginDidMismatch";
+    this.did = did;
+  }
+}
+
+async function proveAccount(
+  authorization: string,
+  postedDid: string | undefined
+): Promise<ProvenAccount> {
+  const verified = await verifyServiceJwt(readBearerToken(authorization), {
+    aud: Config.getAtprotoCreateSettings().serviceDid,
+    lxm: ATPROTO_LOGIN_LXM,
+    allowDidWeb: true,
+  });
+  if (postedDid && postedDid !== verified.did) {
+    throw new LoginDidMismatch(verified.did);
+  }
+  if (usedLoginTokens.has(verified.tokenId)) {
+    throw new ServiceAuthError(
+      "polis_err_atproto_auth_replayed",
+      401,
+      "token_reused"
+    );
+  }
+  usedLoginTokens.set(verified.tokenId, true);
+  return { did: verified.did, handle: verified.handle };
 }
 
 /**
  * POST /api/v3/auth/atproto-login
- *
- * Exchanges an atproto DID + email for a server-issued admin JWT.
- * Matches existing users by DID (oidc_user_mappings) or email (users table).
- * Creates a new user if no match is found.
  */
 export async function handle_POST_atproto_login(
-  req: { p: { did: string; handle: string; email?: string; displayName?: string; avatarUrl?: string } },
-  res: any
-) {
-  const { did, handle, email, displayName } = req.p;
+  req: { headers?: { authorization?: string }; p?: LoginParams },
+  res: JsonResponse
+): Promise<void> {
+  const params = req.p ?? {};
+  const mode = Config.getAtprotoLoginSettings().proof;
+  const authorization = req.headers?.authorization;
+  const presented =
+    typeof authorization === "string" && authorization.trim() !== "";
 
-  if (!did || !handle) {
-    failJson(res, 400, "polis_err_atproto_login_missing_params");
+  if (!presented && mode === "required") {
+    failJson(res, 401, "polis_err_atproto_auth_missing");
     return;
   }
 
   try {
-    // First check for existing DID mapping (including AIP-prefixed format)
-    let uid = await findUidByDid(did);
-
-    if (uid) {
-      logger.info("atproto admin login: found existing DID mapping", { did, uid });
-    } else {
-      // No DID mapping — use getOrCreateUserIDFromOidcSub which matches by email
-      // Use the atproto account email if available, fall back to handle
-      const userEmail = email || handle;
-      uid = await getOrCreateUserIDFromOidcSub(did, {
-        email: userEmail,
-        name: displayName || handle,
-        nickname: handle,
-      });
-      logger.info("atproto admin login: created/matched user", { did, handle, email: userEmail, uid });
+    let proven: ProvenAccount | null = null;
+    if (presented) {
+      try {
+        proven = await proveAccount(authorization, params.did);
+      } catch (err) {
+        if (err instanceof LoginDidMismatch) {
+          failJson(res, 400, "polis_err_atproto_login_did_mismatch", {
+            did: err.did,
+          });
+          return;
+        }
+        const refusal = err instanceof ServiceAuthError ? err : null;
+        const details = {
+          did: readClaimedIssuer(authorization),
+          reason: refusal ? refusal.message : "verification_failed",
+        };
+        if (mode === "required") {
+          if (!refusal) {
+            throw err;
+          }
+          failJson(res, refusal.status, refusal.code, details);
+          return;
+        }
+        logger.warn("atproto admin login: proof was not accepted", details);
+      }
     }
 
-    const token = issueAdminJWT(uid, did);
+    const did = proven ? proven.did : params.did;
+    const handle = proven ? proven.handle : params.handle;
+    if (!did || (!proven && !handle)) {
+      failJson(res, 400, "polis_err_atproto_login_missing_params");
+      return;
+    }
 
+    const { uid, created } = await findOrCreateUser(did, {
+      handle: handle || null,
+      displayName: params.displayName,
+    });
+    if (created) {
+      await storeEmail(uid, params.email);
+    }
+
+    const token = issueAdminJWT(uid, did, proven !== null);
+    const entry = { did, uid, proof: proven !== null, mode };
+    if (proven) {
+      logger.info("atproto admin login", entry);
+    } else {
+      logger.warn("atproto admin login without proof", entry);
+    }
     res.status(200).json({ token, uid });
   } catch (err) {
-    logger.error("polis_err_atproto_login", err);
-    failJson(res, 500, "polis_err_atproto_login");
+    failJson(res, 500, "polis_err_atproto_login", err);
   }
 }
 

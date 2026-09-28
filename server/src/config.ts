@@ -107,6 +107,15 @@ export default {
     };
   },
 
+  getAtprotoLoginSettings(): { proof: "optional" | "required" } {
+    return {
+      proof:
+        process.env.ATPROTO_LOGIN_PROOF === "optional"
+          ? "optional"
+          : "required",
+    };
+  },
+
   getValidTopicalRatio(): number | null {
     const raw = process.env.TOPICAL_COMMENT_RATIO;
     if (raw === undefined || raw === null || raw === "") return null;
