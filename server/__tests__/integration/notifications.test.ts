@@ -91,8 +91,7 @@ describe("Notification Subscription API", () => {
     expect(response.body).toEqual({ subscribed: 1 });
   });
 
-  test("POST /convSubscriptions - authentication behavior (currently not enforced)", async () => {
-    // Create unauthenticated agent
+  test("POST /convSubscriptions - should subscribe an email address without sign-in", async () => {
     const unauthAgent = await newAgent();
 
     const response: Response = await unauthAgent
@@ -103,12 +102,8 @@ describe("Notification Subscription API", () => {
         type: 1,
       });
 
-    // The API gives a 401 error when the user is not authenticated
-    expect(response.status).toBe(401);
-    expect(response.body).toHaveProperty(
-      "error",
-      "No authentication token found"
-    );
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ subscribed: 1 });
   });
 
   test("POST /convSubscriptions - should validate required parameters", async () => {
