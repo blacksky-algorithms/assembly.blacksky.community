@@ -39,8 +39,7 @@ class TopicTree extends React.Component {
       console.log('TopicTree loadTopics - conversation_id:', conversation_id)
 
       // Fetch topics from API
-      const response = await fetch(`/api/v3/topicMod/topics?conversation_id=${conversation_id}`)
-      const data = await response.json()
+      const data = await PolisNet.polisGet('/api/v3/topicMod/topics', { conversation_id })
 
       if (data.status === 'success') {
         this.setState({

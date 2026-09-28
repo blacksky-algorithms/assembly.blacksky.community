@@ -45,10 +45,10 @@ class TopicDetail extends React.Component {
       const topicKey = decodeURIComponent(match.params.topicKey)
 
       // Fetch comments for this specific topic
-      const response = await fetch(
-        `/api/v3/topicMod/topics/${encodeURIComponent(topicKey)}/comments?conversation_id=${conversation_id}`
+      const data = await PolisNet.polisGet(
+        `/api/v3/topicMod/topics/${encodeURIComponent(topicKey)}/comments`,
+        { conversation_id }
       )
-      const data = await response.json()
 
       if (data.status === 'success') {
         this.setState({

@@ -1,6 +1,6 @@
 {
   "name": "polis-client-admin",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "repository": "github:pol-is/polisClientAdmin",
   "description": "Polis Admin Console",
   "scripts": {
