@@ -5,6 +5,7 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { jsx, Box, Flex, Heading, Text, Button, Checkbox, Label } from 'theme-ui'
 import { Link } from 'react-router-dom'
+import PolisNet from '../../../util/net'
 
 const mapStateToProps = (state) => {
   return {
@@ -45,7 +46,7 @@ class TopicDetail extends React.Component {
 
       // Fetch comments for this specific topic
       const response = await fetch(
-        `/api/v3/topicMod/topics/${encodeURIComponent(topicKey)}/comments?report_id=${conversation_id}`
+        `/api/v3/topicMod/topics/${encodeURIComponent(topicKey)}/comments?conversation_id=${conversation_id}`
       )
       const data = await response.json()
 
@@ -112,20 +113,12 @@ class TopicDetail extends React.Component {
       const { match } = this.props
       const conversation_id = match.params.conversation_id
 
-      const response = await fetch('/api/v3/topicMod/moderate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          report_id: conversation_id,
-          comment_ids: Array.from(selectedComments),
-          action: action,
-          moderator: 'admin' // TODO: Get from auth state
-        })
+      const data = await PolisNet.polisPost('/api/v3/topicMod/moderate', {
+        conversation_id: conversation_id,
+        comment_ids: Array.from(selectedComments),
+        action: action,
+        moderator: 'admin' // TODO: Get from auth state
       })
-
-      const data = await response.json()
 
       if (data.status === 'success') {
         // Reload comments to reflect changes

@@ -997,6 +997,7 @@ helpersInitialized.then(
 
     app.post(
       "/api/v3/topicMod/moderate",
+      hybridAuth(assignToP),
       moveToBody,
       need(
         "conversation_id",

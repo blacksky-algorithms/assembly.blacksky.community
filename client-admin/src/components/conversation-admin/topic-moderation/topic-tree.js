@@ -5,6 +5,7 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { jsx, Box, Flex, Heading, Text, Button } from 'theme-ui'
 import { Link } from 'react-router-dom'
+import PolisNet from '../../../util/net'
 
 const mapStateToProps = (state) => {
   return {
@@ -90,20 +91,12 @@ class TopicTree extends React.Component {
     try {
       const conversation_id = this.props.conversation_id
 
-      const response = await fetch('/api/v3/topicMod/moderate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          conversation_id: conversation_id,
-          topic_key: topicKey,
-          action: action,
-          moderator: 'admin' // TODO: Get from auth state
-        })
+      const data = await PolisNet.polisPost('/api/v3/topicMod/moderate', {
+        conversation_id: conversation_id,
+        topic_key: topicKey,
+        action: action,
+        moderator: 'admin' // TODO: Get from auth state
       })
-
-      const data = await response.json()
 
       if (data.status === 'success') {
         // Reload topics to reflect changes

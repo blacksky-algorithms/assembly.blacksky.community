@@ -9,6 +9,8 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import Config from "../../config";
 import p from "../../db/pg-query";
+import { isModerator } from "../../utils/common";
+import { failJson } from "../../utils/fail";
 
 // DynamoDB configuration (reuse from topics.ts)
 const dynamoDBConfig: DynamoDBClientConfig = {
@@ -257,6 +259,11 @@ export async function handle_POST_topicMod_moderate(
   res: Response
 ) {
   try {
+    const isMod = await isModerator(req.p.zid, req.p.uid);
+    if (!isMod) {
+      return failJson(res, 403, "polis_err_topicmod_moderate_permission");
+    }
+
     const { topic_key, comment_ids, action, moderator } = req.body;
 
     if (!action || !moderator) {
