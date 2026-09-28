@@ -19,6 +19,17 @@ for name in sorted(services):
 '
 }
 
+logs() {
+  python3 -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+for name in sorted(services):
+    logging = services[name].get("logging", {})
+    options = logging.get("options", {})
+    print(name, logging.get("driver", "none"), options.get("max-size", "-"), options.get("max-file", "-"))
+'
+}
+
 FAILURES=0
 check() {
   local name="$1" actual="$2" expected="$3"
@@ -42,6 +53,18 @@ nginx-proxy unless-stopped 443,80
 ollama unless-stopped -
 postgres always -
 server unless-stopped -"
+
+check "production file bounds every container log" "$(resolve -f docker-compose.yml | logs)" \
+"client-participation-alpha json-file 50m 5
+delphi json-file 50m 5
+dynamodb json-file 50m 5
+file-server json-file 50m 5
+math json-file 50m 5
+minio json-file 50m 5
+nginx-proxy json-file 50m 5
+ollama json-file 50m 5
+postgres json-file 50m 5
+server json-file 50m 5"
 
 check "development overlay keeps its published ports" \
   "$(resolve -f docker-compose.yml -f docker-compose.dev.yml | summary | awk '{print $1, $3}')" \
