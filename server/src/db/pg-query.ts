@@ -1,5 +1,5 @@
 import { isFunction, isString, isUndefined } from "underscore";
-import { Pool, PoolConfig, QueryResult } from "pg";
+import { Pool, PoolClient, PoolConfig, QueryResult } from "pg";
 import { parse as parsePgConnectionString } from "pg-connection-string";
 import QueryStream from "pg-query-stream";
 
@@ -224,6 +224,79 @@ function stream_queryP_readOnly(
   });
 }
 
+export type TransactionQuery = (sql: string, params?: any[]) => Promise<any[]>;
+
+export async function withTransaction<T>(
+  fn: (query: TransactionQuery) => Promise<T>
+): Promise<T> {
+  let client: PoolClient;
+  try {
+    client = await readWritePool.connect();
+  } catch (err) {
+    logger.error("pg_connect_pool_fail", err);
+    throw err;
+  }
+
+  // A checked-out client has no error listener of its own, and a lost
+  // connection would otherwise surface as an uncaught exception.
+  const onClientError = (err: Error) => {
+    logger.error("pg_transaction_client_error", err);
+  };
+  client.on("error", onClientError);
+  const release = (err?: Error) => {
+    client.removeListener("error", onClientError);
+    client.release(err);
+  };
+
+  let finished = false;
+  let statementFailed = false;
+  let statementError: unknown;
+
+  const query: TransactionQuery = async (sql, params = []) => {
+    if (finished) {
+      throw new Error("polis_err_transaction_finished");
+    }
+    try {
+      const result = await client.query(sql, params);
+      return result.rows;
+    } catch (err) {
+      if (!statementFailed) {
+        statementFailed = true;
+        statementError = err;
+      }
+      throw err;
+    }
+  };
+
+  try {
+    await client.query("BEGIN");
+    const value = await fn(query);
+    finished = true;
+    // A failed statement aborts the transaction, and COMMIT would then roll
+    // back without reporting an error, even if the callback caught the failure.
+    if (statementFailed) {
+      throw statementError;
+    }
+    // An insert that skips a conflicting row fires the trigger that takes the
+    // advisory lock but not the one that releases it, and reports no error.
+    await client.query("SELECT pg_advisory_unlock_all()");
+    await client.query("COMMIT");
+    release();
+    return value;
+  } catch (err) {
+    finished = true;
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackErr) {
+      logger.error("pg_transaction_rollback_fail", rollbackErr);
+    }
+    // The tid and pid triggers take session-level advisory locks, which
+    // survive ROLLBACK, so the client is destroyed instead of reused.
+    release(err instanceof Error ? err : new Error(String(err)));
+    throw err;
+  }
+}
+
 export default {
   query,
   query_readOnly,
@@ -233,4 +306,5 @@ export default {
   queryP_readOnly,
   queryP_readOnly_wRetryIfEmpty,
   stream_queryP_readOnly,
+  withTransaction,
 };

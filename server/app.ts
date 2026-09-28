@@ -71,6 +71,14 @@ import { handle_GET_reportExport } from "./src/routes/export";
 import { handle_GET_reportNarrative } from "./src/routes/reportNarrative";
 import { handle_POST_atproto_login, handle_GET_check_membership, handle_GET_check_funder, handle_GET_check_oss_supporter, handle_GET_badges, handle_POST_badges, handle_DELETE_badges } from "./src/auth/atproto-admin";
 import { handle_POST_conversation_record, handle_POST_statement_record } from "./src/routes/atproto-records";
+import { atprotoServiceAuth } from "./src/auth/atproto-service-auth";
+import {
+  ATPROTO_CREATE_CONVERSATION_LXM,
+  getAtprotoConversationRef,
+  getAtprotoStatements,
+  handle_POST_atproto_conversations,
+  requireAtprotoCreateEnabled,
+} from "./src/routes/atproto-conversations";
 import { handle_GET_embed_conversation, handle_POST_embed_vote } from "./src/routes/embed";
 import {
   handle_POST_auth_deregister_jwt,
@@ -503,6 +511,16 @@ helpersInitialized.then(
       handle_POST_statement_record
     );
 
+    app.post(
+      "/api/v3/atproto/conversations",
+      requireAtprotoCreateEnabled,
+      atprotoServiceAuth(ATPROTO_CREATE_CONVERSATION_LXM),
+      need("topic", getStringLimitLength(1, 4000), assignToP),
+      need("statements", getAtprotoStatements, assignToP),
+      need("conversation", getAtprotoConversationRef, assignToP),
+      handle_POST_atproto_conversations
+    );
+
     // Embed API (CORS-enabled for blacksky.community)
     app.get(
       "/api/v3/embed/conversation",
@@ -525,6 +543,8 @@ helpersInitialized.then(
       want("vote_at_uri", getStringLimitLength(1, 500), assignToP),
       handle_POST_embed_vote
     );
+
+    app.get("/api/v3/og-image/:conversation_id", handle_GET_ogImage);
 
     app.get(
       "/api/v3/zinvites/:zid",

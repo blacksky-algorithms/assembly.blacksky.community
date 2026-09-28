@@ -8,13 +8,30 @@
 
 import { getConversationInfo, getZidFromConversationId, createXidRecordByZid } from "../conversation";
 import { getNextComment } from "../nextComment";
-import { getComments } from "../comment";
 import { createAnonUser } from "../auth/create-user";
 import { getPidPromise } from "../user";
 import { verifyXidJWT } from "../auth/xid-jwt";
 import logger from "../utils/logger";
 import { failJson } from "../utils/fail";
 import pg from "../db/pg-query";
+
+// The card works without a results link, so a failed lookup must not fail
+// the response that every card depends on.
+async function findReportId(zid: number): Promise<string | null> {
+  try {
+    const reports = (await pg.queryP_readOnly(
+      `SELECT report_id FROM reports
+        WHERE zid = ($1)
+          AND EXISTS (SELECT 1 FROM atproto_conversation_creations a WHERE a.zid = reports.zid)
+        ORDER BY created DESC NULLS LAST, rid DESC LIMIT 1;`,
+      [zid]
+    )) as { report_id: string }[];
+    return reports[0]?.report_id ?? null;
+  } catch (err) {
+    logger.error("polis_err_embed_conversation_report_id", err);
+    return null;
+  }
+}
 
 /**
  * GET /api/v3/embed/conversation?conversation_id={id}
@@ -36,6 +53,7 @@ export async function handle_GET_embed_conversation(
   try {
     const conv = await getConversationInfo(zid);
     const nextComment = await getNextComment(zid, -1, [], undefined);
+    const reportId = await findReportId(zid);
 
     res.status(200).json({
       conversation: {
@@ -48,6 +66,7 @@ export async function handle_GET_embed_conversation(
         at_cid: conv.at_cid,
       },
       nextComment: nextComment || null,
+      report_id: reportId,
     });
   } catch (err) {
     logger.error("polis_err_embed_conversation", err);

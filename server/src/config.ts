@@ -62,6 +62,45 @@ export default {
     }
   },
 
+  getAtprotoCreateSettings(): {
+    enabled: boolean;
+    serviceDid: string;
+    plcUrl: string;
+    eligibility: "allowlist" | "members" | "any";
+    allowlist: string[];
+    dailyCapPerDid: number;
+    hourlyCapGlobal: number;
+  } {
+    const eligibility = process.env.ATPROTO_APP_CREATE_ELIGIBILITY;
+    const positiveInt = (raw: string | undefined, fallback: number) => {
+      const parsed = parseInt(raw || "", 10);
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+    };
+    return {
+      enabled: isTrue(process.env.ATPROTO_APP_CREATE_ENABLED),
+      serviceDid:
+        process.env.ATPROTO_SERVICE_DID ||
+        "did:web:assembly.blacksky.community",
+      plcUrl: (process.env.ATPROTO_PLC_URL || "https://plc.directory").replace(
+        /\/+$/,
+        ""
+      ),
+      eligibility:
+        eligibility === "members" || eligibility === "any"
+          ? eligibility
+          : "allowlist",
+      allowlist: (process.env.ATPROTO_APP_CREATE_ALLOWLIST || "")
+        .split(",")
+        .map((did) => did.trim())
+        .filter((did) => did.length > 0),
+      dailyCapPerDid: positiveInt(process.env.ATPROTO_APP_CREATE_DAILY_CAP, 5),
+      hourlyCapGlobal: positiveInt(
+        process.env.ATPROTO_APP_CREATE_HOURLY_CAP,
+        200
+      ),
+    };
+  },
+
   getValidTopicalRatio(): number | null {
     const raw = process.env.TOPICAL_COMMENT_RATIO;
     if (raw === undefined || raw === null || raw === "") return null;

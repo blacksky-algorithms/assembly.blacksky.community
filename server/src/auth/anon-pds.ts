@@ -1,17 +1,3 @@
-/**
- * Server-side PDS session for anonymous/seed record writes.
- *
- * The assembly appview writes anonymous records (seed statements) to a
- * designated "anon" DID's repo. This is similar to how a PDS delegates
- * to a mod service DID.
- *
- * Env vars:
- * - ANON_DID: DID of the anon service account
- * - ANON_PDS: PDS URL for the anon account
- * - ANON_HANDLE: Handle for login
- * - ANON_APP_PASSWORD: App password for login
- */
-
 // eslint-disable-next-line no-restricted-properties
 const ANON_DID = process.env.ANON_DID || "";
 // eslint-disable-next-line no-restricted-properties
@@ -23,12 +9,87 @@ const ANON_APP_PASSWORD = process.env.ANON_APP_PASSWORD || "";
 
 import logger from "../utils/logger";
 
+const STATEMENT_COLLECTION = "community.blacksky.assembly.statement";
+const REQUEST_TIMEOUT_MS = 10000;
+const STALE_SESSION_ERRORS = ["ExpiredToken", "InvalidToken"];
+
 interface AnonSession {
   accessJwt: string;
   did: string;
 }
 
+interface PdsResponse {
+  ok: boolean;
+  status: number;
+  body: string;
+  data: Record<string, unknown> | null;
+}
+
+interface StatementRecordParams {
+  rkey?: string;
+  conversationUri: string;
+  conversationCid: string;
+  text: string;
+  createdAt: string;
+}
+
 let anonSession: AnonSession | null = null;
+let pendingSession: Promise<AnonSession | null> | null = null;
+
+function parseJson(body: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(body);
+    return parsed !== null && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function pdsPost(
+  nsid: string,
+  payload: unknown,
+  accessJwt?: string
+): Promise<PdsResponse> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(
+        new Error(`Anon PDS ${nsid} timed out after ${REQUEST_TIMEOUT_MS} ms`)
+      );
+    }, REQUEST_TIMEOUT_MS);
+  });
+
+  const send = async (): Promise<PdsResponse> => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (accessJwt) {
+      headers.Authorization = `Bearer ${accessJwt}`;
+    }
+    const resp = await fetch(`${ANON_PDS}/xrpc/${nsid}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      redirect: "error",
+      signal: controller.signal,
+    });
+    const body = await resp.text();
+    return {
+      ok: resp.ok,
+      status: resp.status,
+      body,
+      data: parseJson(body),
+    };
+  };
+
+  try {
+    return await Promise.race([send(), timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function refreshAnonSession(): Promise<AnonSession | null> {
   if (!ANON_PDS || !ANON_HANDLE || !ANON_APP_PASSWORD) {
@@ -37,13 +98,9 @@ async function refreshAnonSession(): Promise<AnonSession | null> {
   }
 
   try {
-    const resp = await fetch(`${ANON_PDS}/xrpc/com.atproto.server.createSession`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        identifier: ANON_HANDLE,
-        password: ANON_APP_PASSWORD,
-      }),
+    const resp = await pdsPost("com.atproto.server.createSession", {
+      identifier: ANON_HANDLE,
+      password: ANON_APP_PASSWORD,
     });
 
     if (!resp.ok) {
@@ -51,11 +108,23 @@ async function refreshAnonSession(): Promise<AnonSession | null> {
       return null;
     }
 
-    const data = await resp.json();
-    anonSession = {
-      accessJwt: data.accessJwt,
-      did: data.did,
-    };
+    const accessJwt = resp.data?.accessJwt;
+    const did = resp.data?.did;
+    if (typeof accessJwt !== "string" || typeof did !== "string") {
+      logger.error("Anon PDS session response is incomplete", {
+        status: resp.status,
+      });
+      return null;
+    }
+
+    if (ANON_DID && did !== ANON_DID) {
+      logger.warn("Anon PDS session DID differs from ANON_DID", {
+        configured: ANON_DID,
+        did,
+      });
+    }
+
+    anonSession = { accessJwt, did };
 
     logger.info("Anon PDS session established", { did: anonSession.did });
     return anonSession;
@@ -65,98 +134,129 @@ async function refreshAnonSession(): Promise<AnonSession | null> {
   }
 }
 
-async function getAnonSession(): Promise<AnonSession | null> {
-  if (anonSession) return anonSession;
-  return refreshAnonSession();
+function getAnonSession(): Promise<AnonSession | null> {
+  if (anonSession) return Promise.resolve(anonSession);
+  if (!pendingSession) {
+    pendingSession = refreshAnonSession().finally(() => {
+      pendingSession = null;
+    });
+  }
+  return pendingSession;
 }
 
-/**
- * Create an anonymous statement record in the anon DID's repo.
- */
+function isStaleSession(resp: PdsResponse): boolean {
+  if (resp.status === 401) return true;
+  const error = resp.data?.error;
+  return (
+    resp.status === 400 &&
+    typeof error === "string" &&
+    STALE_SESSION_ERRORS.includes(error)
+  );
+}
+
+function sendStatementRecord(
+  session: AnonSession,
+  params: StatementRecordParams
+): Promise<PdsResponse> {
+  const { rkey } = params;
+  return pdsPost(
+    `com.atproto.repo.${rkey === undefined ? "createRecord" : "putRecord"}`,
+    {
+      repo: session.did,
+      collection: STATEMENT_COLLECTION,
+      ...(rkey === undefined ? {} : { rkey }),
+      record: {
+        $type: STATEMENT_COLLECTION,
+        conversation: {
+          uri: params.conversationUri,
+          cid: params.conversationCid,
+        },
+        text: params.text,
+        anonymous: true,
+        createdAt: params.createdAt,
+      },
+    },
+    session.accessJwt
+  );
+}
+
+async function writeStatementRecord(
+  params: StatementRecordParams
+): Promise<{ uri: string; cid: string } | null> {
+  try {
+    let session = await getAnonSession();
+    if (!session) return null;
+
+    let resp = await sendStatementRecord(session, params);
+
+    if (isStaleSession(resp)) {
+      if (anonSession === session) {
+        anonSession = null;
+      }
+      session = await getAnonSession();
+      if (!session) return null;
+
+      resp = await sendStatementRecord(session, params);
+      if (!resp.ok) {
+        logger.error("Anon statement retry failed", { status: resp.status });
+        return null;
+      }
+    } else if (!resp.ok) {
+      logger.error("Failed to create anon statement", {
+        status: resp.status,
+        body: resp.body,
+      });
+      return null;
+    }
+
+    const uri = resp.data?.uri;
+    const cid = resp.data?.cid;
+    if (typeof uri !== "string" || typeof cid !== "string") {
+      logger.error("Anon statement response is incomplete", {
+        status: resp.status,
+      });
+      return null;
+    }
+    return { uri, cid };
+  } catch (err) {
+    logger.error("Anon statement record error", err);
+    return null;
+  }
+}
+
+export function getAnonDid(): string | null {
+  return anonSession?.did || ANON_DID || null;
+}
+
+export async function ensureAnonSession(): Promise<boolean> {
+  return (await getAnonSession()) !== null;
+}
+
 export async function createAnonStatementRecord(params: {
   conversationUri: string;
   conversationCid: string;
   text: string;
 }): Promise<{ uri: string; cid: string } | null> {
-  const session = await getAnonSession();
-  if (!session) return null;
+  return writeStatementRecord({
+    conversationUri: params.conversationUri,
+    conversationCid: params.conversationCid,
+    text: params.text,
+    createdAt: new Date().toISOString(),
+  });
+}
 
-  try {
-    const resp = await fetch(
-      `${ANON_PDS}/xrpc/com.atproto.repo.createRecord`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.accessJwt}`,
-        },
-        body: JSON.stringify({
-          repo: session.did,
-          collection: "community.blacksky.assembly.statement",
-          record: {
-            $type: "community.blacksky.assembly.statement",
-            conversation: {
-              uri: params.conversationUri,
-              cid: params.conversationCid,
-            },
-            text: params.text,
-            anonymous: true,
-            createdAt: new Date().toISOString(),
-          },
-        }),
-      }
-    );
-
-    if (!resp.ok) {
-      const body = await resp.text();
-      // Session might be expired — refresh and retry once
-      if (resp.status === 401) {
-        anonSession = null;
-        const newSession = await refreshAnonSession();
-        if (!newSession) return null;
-
-        const retry = await fetch(
-          `${ANON_PDS}/xrpc/com.atproto.repo.createRecord`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${newSession.accessJwt}`,
-            },
-            body: JSON.stringify({
-              repo: newSession.did,
-              collection: "community.blacksky.assembly.statement",
-              record: {
-                $type: "community.blacksky.assembly.statement",
-                conversation: {
-                  uri: params.conversationUri,
-                  cid: params.conversationCid,
-                },
-                text: params.text,
-                anonymous: true,
-                createdAt: new Date().toISOString(),
-              },
-            }),
-          }
-        );
-
-        if (!retry.ok) {
-          logger.error("Anon statement retry failed", { status: retry.status });
-          return null;
-        }
-
-        const retryData = await retry.json();
-        return { uri: retryData.uri, cid: retryData.cid };
-      }
-
-      logger.error("Failed to create anon statement", { status: resp.status, body });
-      return null;
-    }
-
-    const data = await resp.json();
-    return { uri: data.uri, cid: data.cid };
-  } catch (err) {
-    logger.error("Anon statement record error", err);
-    return null;
-  }
+export async function putAnonStatementRecord(params: {
+  rkey: string;
+  conversationUri: string;
+  conversationCid: string;
+  text: string;
+  createdAt: string;
+}): Promise<{ uri: string; cid: string } | null> {
+  return writeStatementRecord({
+    rkey: params.rkey,
+    conversationUri: params.conversationUri,
+    conversationCid: params.conversationCid,
+    text: params.text,
+    createdAt: params.createdAt,
+  });
 }
