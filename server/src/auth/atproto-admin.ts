@@ -22,6 +22,14 @@ export function getFeedgenPool(): pgLib.Pool {
       ssl: { rejectUnauthorized: false },
       max: 3,
     });
+    // The pool attaches the whole client to the error it emits, so only the
+    // message and code are logged.
+    feedgenPool.on("error", (err: Error & { code?: string }) => {
+      logger.error("feedgen_pool_idle_client_error", {
+        error: err.message,
+        code: err.code,
+      });
+    });
   }
   return feedgenPool;
 }
