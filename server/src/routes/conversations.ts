@@ -1,4 +1,5 @@
 import _ from "underscore";
+import { encode } from "html-entities";
 import { DEFAULTS } from "../utils/constants";
 import { failJson } from "../utils/fail";
 import { generateAndRegisterZinvite, generateToken } from "../auth";
@@ -1206,7 +1207,7 @@ function handle_GET_iip_conversation(
     send: (arg0: string) => void;
   }
 ) {
-  const conversation_id = req.params.conversation_id;
+  const conversation_id = encode(req.params.conversation_id);
   res.set({
     "Content-Type": "text/html",
   });
@@ -1227,13 +1228,13 @@ function handle_GET_iim_conversation(
   }
 ) {
   const zid = req.p.zid;
-  const conversation_id = req.params.conversation_id;
+  const conversation_id = encode(req.params.conversation_id);
   getConversationInfo(zid)
     .then(function (info: ConversationInfo) {
       res.set({
         "Content-Type": "text/html",
       });
-      const title = info.topic || info.created;
+      const title = encode(String(info.topic || info.created));
       res.send(
         "<a href='https://pol.is/" +
           conversation_id +
@@ -1243,7 +1244,7 @@ function handle_GET_iim_conversation(
           "<p><a href='https://pol.is/m" +
           conversation_id +
           "' target='_blank'>moderate</a></p>" +
-          (info.description ? "<p>" + info.description + "</p>" : "")
+          (info.description ? "<p>" + encode(info.description) + "</p>" : "")
       );
     })
     .catch(function (err: any) {
