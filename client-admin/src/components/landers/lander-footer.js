@@ -1,8 +1,6 @@
 import { Component } from 'react'
 import { Box, Link, Heading } from 'theme-ui'
 
-import emoji from 'react-easy-emoji'
-
 class Header extends Component {
   render() {
     return (

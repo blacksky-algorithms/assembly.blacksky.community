@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import PropTypes from 'prop-types'
 import { setOidcTokenGetter, setOidcActions } from '../util/net'
 import { getAtprotoIdentity, clearAtprotoIdentity, isAdminTokenExpired } from '../util/atproto-oauth'
 
@@ -39,6 +40,10 @@ const AtprotoConnector = ({ onAuthComplete }) => {
   }, [onAuthComplete])
 
   return null
+}
+
+AtprotoConnector.propTypes = {
+  onAuthComplete: PropTypes.func
 }
 
 export default AtprotoConnector
