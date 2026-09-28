@@ -327,7 +327,10 @@ export function getPca(
   }
   const cachedPOJO = cached && cached.asPOJO;
   if (cachedPOJO) {
-    if (cachedPOJO.math_tick <= (math_tick || 0)) {
+    // A read without a tick asks for the latest result, and the uncached path
+    // answers it with the empty result at tick 0, so the cache must as well.
+    const newerThan = math_tick === undefined ? -1 : math_tick || 0;
+    if (cachedPOJO.math_tick <= newerThan) {
       logger.info("math was cached but not new", {
         zid,
         cached_math_tick: cachedPOJO.math_tick,
