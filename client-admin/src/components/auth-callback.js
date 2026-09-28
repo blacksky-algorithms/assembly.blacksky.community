@@ -1,17 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router'
-import { Box, Text } from 'theme-ui'
+import { Box } from 'theme-ui'
 import { Agent } from '@atproto/api'
 import { getOAuthClient, setAtprotoIdentity } from '../util/atproto-oauth'
-import URLs from '../util/url'
+import { loginWithProof, signInErrorMessage } from '../util/atproto-login'
 import Spinner from './framework/spinner'
 
-const ADMIN_TOKEN_KEY = 'atproto_admin_token'
-
-const AuthCallback = ({ onComplete }) => {
+const AuthCallback = ({ onComplete, onError }) => {
   const navigate = useNavigate()
-  const [error, setError] = useState(null)
 
   useEffect(() => {
     ;(async () => {
@@ -38,42 +35,22 @@ const AuthCallback = ({ onComplete }) => {
           avatarUrl: profile.data.avatar || ''
         }
 
-        // Exchange DID + email for server admin JWT
-        const resp = await fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...identity,
-            email: sessionInfo.data.email || null
-          })
+        await loginWithProof({
+          getServiceAuth: (params) => agent.com.atproto.server.getServiceAuth(params),
+          identity,
+          email: sessionInfo.data.email || null
         })
-
-        if (!resp.ok) {
-          throw new Error(`Server login failed: ${resp.status}`)
-        }
-
-        const { token } = await resp.json()
-
-        // Store identity and token
         setAtprotoIdentity(identity)
-        localStorage.setItem(ADMIN_TOKEN_KEY, token)
 
         if (onComplete) onComplete()
         navigate('/')
       } catch (err) {
         console.error('Auth callback error:', err)
-        setError(err instanceof Error ? err.message : String(err))
+        if (onError) onError(signInErrorMessage(err))
+        navigate('/signin')
       }
     })()
-  }, [navigate, onComplete])
-
-  if (error) {
-    return (
-      <Box sx={{ p: [4], textAlign: 'center' }}>
-        <Text sx={{ color: 'red' }}>Login failed: {error}</Text>
-      </Box>
-    )
-  }
+  }, [navigate, onComplete, onError])
 
   return (
     <Box
@@ -89,7 +66,8 @@ const AuthCallback = ({ onComplete }) => {
 }
 
 AuthCallback.propTypes = {
-  onComplete: PropTypes.func
+  onComplete: PropTypes.func,
+  onError: PropTypes.func
 }
 
 export default AuthCallback

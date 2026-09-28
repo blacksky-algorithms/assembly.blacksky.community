@@ -27,19 +27,26 @@ import Account from './components/conversations-and-account/account'
 import Integrate from './components/conversations-and-account/integrate'
 
 import MainLayout from './components/main-layout'
-import { getAtprotoIdentity, getOAuthClient, setAtprotoIdentity, clearAtprotoIdentity, isAdminTokenExpired } from './util/atproto-oauth'
+import {
+  getAtprotoIdentity,
+  getOAuthClient,
+  setAtprotoIdentity,
+  clearAtprotoIdentity,
+  isAdminTokenExpired
+} from './util/atproto-oauth'
+import { ADMIN_TOKEN_KEY, loginWithProof, signInErrorMessage } from './util/atproto-login'
 import { Agent } from '@atproto/api'
-import URLs from './util/url'
 
 const AUTH_LOADING_TIMEOUT = 3000
-const ADMIN_TOKEN_KEY = 'atproto_admin_token'
 
 // Check if current URL has OAuth callback params (state + code in hash or query)
 function hasOAuthParams() {
   const hash = window.location.hash
   const search = window.location.search
-  return (hash.includes('state=') || search.includes('state=')) &&
-         (hash.includes('code=') || search.includes('code='))
+  return (
+    (hash.includes('state=') || search.includes('state=')) &&
+    (hash.includes('code=') || search.includes('code='))
+  )
 }
 
 async function processOAuthCallback() {
@@ -60,17 +67,12 @@ async function processOAuthCallback() {
     avatarUrl: profile.data.avatar || ''
   }
 
-  const resp = await fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...identity, email: sessionInfo.data?.email || null })
+  await loginWithProof({
+    getServiceAuth: (params) => agent.com.atproto.server.getServiceAuth(params),
+    identity,
+    email: sessionInfo.data?.email || null
   })
-
-  if (!resp.ok) throw new Error(`Server login failed: ${resp.status}`)
-  const { token } = await resp.json()
-
   setAtprotoIdentity(identity)
-  localStorage.setItem(ADMIN_TOKEN_KEY, token)
 
   // Clean up hash fragment
   if (window.location.hash) {
@@ -78,6 +80,16 @@ async function processOAuthCallback() {
   }
 
   return true
+}
+
+async function loginWithStoredIdentity(identity) {
+  await loginWithProof({
+    getServiceAuth: async (params) => {
+      const session = await getOAuthClient().restore(identity.did)
+      return new Agent(session).com.atproto.server.getServiceAuth(params)
+    },
+    identity
+  })
 }
 
 const ProtectedRoute = ({ isAuthed, isLoading }) => {
@@ -121,6 +133,7 @@ const App = () => {
   const dispatch = useDispatch()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [signInError, setSignInError] = useState('')
 
   // Check atproto identity on mount, process OAuth callback if returning from auth
   useEffect(() => {
@@ -136,6 +149,7 @@ const App = () => {
         })
         .catch((err) => {
           console.error('OAuth callback failed:', err)
+          setSignInError(signInErrorMessage(err))
           setIsLoading(false)
         })
     } else {
@@ -147,23 +161,13 @@ const App = () => {
         setIsAuthenticated(false)
         setIsLoading(false)
       } else if (identity && !adminToken) {
-        // Identity exists from participation login but no admin JWT — exchange it
-        fetch(`${URLs.urlPrefix}api/v3/auth/atproto-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(identity)
-        })
-          .then(r => r.json())
-          .then(({ token }) => {
-            if (token) {
-              localStorage.setItem(ADMIN_TOKEN_KEY, token)
-              window.location.reload()
-            } else {
-              setIsAuthenticated(false)
-              setIsLoading(false)
-            }
+        loginWithStoredIdentity(identity)
+          .then(() => {
+            window.location.reload()
           })
-          .catch(() => {
+          .catch((err) => {
+            console.error('Sign-in with the stored identity failed:', err)
+            setSignInError(signInErrorMessage(err))
             setIsAuthenticated(false)
             setIsLoading(false)
           })
@@ -237,11 +241,14 @@ const App = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
-        <Route path="/signin" element={<SignIn authed={isAuthed()} />} />
+        <Route path="/signin" element={<SignIn authed={isAuthed()} signInError={signInError} />} />
         <Route path="/signout" element={<SignOut />} />
         <Route path="/tos" element={<TOS />} />
         <Route path="/privacy" element={<Privacy />} />
-        <Route path="/auth/callback" element={<AuthCallback onComplete={handleAuthComplete} />} />
+        <Route
+          path="/auth/callback"
+          element={<AuthCallback onComplete={handleAuthComplete} onError={setSignInError} />}
+        />
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute isAuthed={isAuthed()} isLoading={isLoading} />}>

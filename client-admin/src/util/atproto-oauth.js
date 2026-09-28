@@ -1,8 +1,21 @@
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
 
-const OAUTH_BASE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://assembly.blacksky.community'
+const OAUTH_BASE_URL =
+  typeof window !== 'undefined' ? window.location.origin : 'https://assembly.blacksky.community'
 const OAUTH_CLIENT_NAME = "Blacksky People's Assembly"
-const OAUTH_SCOPE = 'atproto transition:email rpc:app.bsky.actor.getProfile?aud=* repo:community.blacksky.assembly.conversation repo:community.blacksky.assembly.statement repo:community.blacksky.assembly.vote'
+
+export const ASSEMBLY_SERVICE_DID = 'did:web:assembly.blacksky.community'
+export const CREATE_SESSION_METHOD = 'community.blacksky.assembly.createSession'
+
+export const OAUTH_SCOPE = [
+  'atproto',
+  'transition:email',
+  'rpc:app.bsky.actor.getProfile?aud=*',
+  'rpc:community.blacksky.assembly.createSession?aud=*',
+  'repo:community.blacksky.assembly.conversation',
+  'repo:community.blacksky.assembly.statement',
+  'repo:community.blacksky.assembly.vote'
+].join(' ')
 
 function isLoopback() {
   if (typeof window === 'undefined') return false

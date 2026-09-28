@@ -1,16 +1,20 @@
 // Copyright (C) 2012-present, The Authors. This program is free software: you can redistribute it and/or  modify it under the terms of the GNU Affero General Public License, version 3, as published by the Free Software Foundation. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Navigate } from 'react-router'
 import { Heading, Box, Button, Input, Text } from 'theme-ui'
 import StaticLayout from './lander-layout'
 import { getOAuthClient } from '../../util/atproto-oauth'
 
-const SignIn = ({ authed }) => {
+const SignIn = ({ authed, signInError }) => {
   const [handle, setHandle] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (signInError) setError(signInError)
+  }, [signInError])
 
   const handleSignIn = async () => {
     const trimmed = handle.trim()
@@ -60,9 +64,7 @@ const SignIn = ({ authed }) => {
             onClick={handleSignIn}>
             {isProcessing ? 'Signing in...' : 'Sign In'}
           </Button>
-          {error && (
-            <Text sx={{ color: 'red', mt: [2], fontSize: [1] }}>{error}</Text>
-          )}
+          {error && <Text sx={{ color: 'red', mt: [2], fontSize: [1] }}>{error}</Text>}
         </Box>
       </Box>
     </StaticLayout>
@@ -70,7 +72,8 @@ const SignIn = ({ authed }) => {
 }
 
 SignIn.propTypes = {
-  authed: PropTypes.bool
+  authed: PropTypes.bool,
+  signInError: PropTypes.string
 }
 
 export default SignIn
