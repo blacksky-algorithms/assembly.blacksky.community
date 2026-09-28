@@ -43,14 +43,7 @@ async function createXidRecord(
   );
 }
 
-async function createXidRecordByZid(
-  zid: number,
-  uid: number,
-  xid: string,
-  x_profile_image_url?: string,
-  x_name?: string,
-  x_email?: string
-): Promise<void> {
+async function requireXidAllowed(zid: number, xid: string): Promise<void> {
   const conv = await getConversationInfo(zid);
 
   if (conv.use_xid_whitelist) {
@@ -59,6 +52,17 @@ async function createXidRecordByZid(
       throw new Error("polis_err_xid_not_whitelisted_2");
     }
   }
+}
+
+async function createXidRecordByZid(
+  zid: number,
+  uid: number,
+  xid: string,
+  x_profile_image_url?: string,
+  x_name?: string,
+  x_email?: string
+): Promise<void> {
+  await requireXidAllowed(zid, xid);
 
   await pg.queryP(
     "insert into xids (owner, uid, xid, x_profile_image_url, x_name, x_email) values ((select org_id from conversations where zid = ($1)), $2, $3, $4, $5, $6) " +
@@ -74,6 +78,20 @@ async function createXidRecordByZid(
       x_name || null,
       x_email || null,
     ]
+  );
+}
+
+async function createXidRecordIfAbsent(
+  zid: number,
+  uid: number,
+  xid: string
+): Promise<void> {
+  await requireXidAllowed(zid, xid);
+
+  await pg.queryP(
+    "insert into xids (owner, uid, xid) values ((select org_id from conversations where zid = ($1)), $2, $3) " +
+      "on conflict (owner, xid) do nothing;",
+    [zid, uid, xid]
   );
 }
 
@@ -252,6 +270,7 @@ function fetchIndexForConversation(
 export {
   createXidRecord,
   createXidRecordByZid,
+  createXidRecordIfAbsent,
   doGetConversationPreloadInfo,
   fetchIndexForConversation,
   getConversationInfo,
