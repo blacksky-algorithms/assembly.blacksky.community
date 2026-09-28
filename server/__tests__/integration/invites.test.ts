@@ -46,8 +46,8 @@ describe("Email Invites API", () => {
     // Find and verify the welcome email
     const email: EmailObject = await findEmailByRecipient(testEmail);
     expect(email.to[0].address).toBe(testEmail);
-    expect(email.subject).toBe("Get Started with Polis");
-    expect(email.text).toContain("Welcome to pol.is!");
+    expect(email.subject).toBe("Get Started with Blacksky People's Assembly");
+    expect(email.text).toContain("Welcome to Blacksky People's Assembly!");
     expect(email.text).toContain("/welcome/"); // Should contain the einvite link
 
     // Extract the einvite code from the email
@@ -130,7 +130,9 @@ describe("Email Invites API", () => {
       "Here's a link to the conversation you just created"
     );
     expect(email.text).toContain(conversationId);
-    expect(email.text).toContain("With gratitude,\n\nThe team at pol.is");
+    expect(email.text).toContain(
+      "With gratitude,\n\nThe Blacksky People's Assembly team"
+    );
 
     // Verify the conversation link format
     const linkMatch = email.text.match(
