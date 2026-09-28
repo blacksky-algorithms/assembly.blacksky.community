@@ -1,13 +1,14 @@
 {
   "name": "",
   "type": "module",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/node": "^9.3.0",
@@ -19,5 +20,8 @@
     "astro": "^5.12.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
   }
 }
