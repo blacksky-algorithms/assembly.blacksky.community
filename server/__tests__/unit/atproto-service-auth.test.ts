@@ -11,8 +11,11 @@ import {
   test,
 } from "@jest/globals";
 import {
+  MAX_SECONDS_TOKEN_IS_ACCEPTED,
   ServiceAuthError,
   atprotoServiceAuth,
+  readBearerToken,
+  readClaimedIssuer,
   verifyServiceJwt,
 } from "../../src/auth/atproto-service-auth";
 import Config from "../../src/config";
@@ -1634,6 +1637,115 @@ describe("atproto service auth", () => {
       const err = await rejection(verifyAllowingWeb(token));
 
       expectInvalid(err, "issuer_has_no_usable_key");
+    });
+  });
+
+  describe("Authorization header", () => {
+    async function signed(claims: Claims): Promise<string> {
+      return signServiceJwt({ keypair: alice.keypair, claims });
+    }
+
+    test.each<{ name: string; header: (token: string) => string }>([
+      { name: "a bearer token", header: (token) => `Bearer ${token}` },
+      { name: "a lower case scheme", header: (token) => `bearer ${token}` },
+      {
+        name: "spaces around the header",
+        header: (token) => `  Bearer ${token}  `,
+      },
+    ])("yields the token and the issuer it names for $name", async (row) => {
+      const token = await signed(claimsFor(alice));
+
+      expect(readBearerToken(row.header(token))).toBe(token);
+      expect(readClaimedIssuer(row.header(token))).toBe(alice.did);
+    });
+
+    test.each<{ name: string; header: (token: string) => string }>([
+      { name: "another scheme", header: (token) => `Basic ${token}` },
+      { name: "a bare token", header: (token) => token },
+      { name: "no token", header: () => "Bearer" },
+      { name: "two tokens", header: (token) => `Bearer ${token} ${token}` },
+    ])("refuses $name and names no issuer", async ({ header }) => {
+      const value = header(await signed(claimsFor(alice)));
+
+      expectInvalid(
+        await rejection(Promise.resolve().then(() => readBearerToken(value))),
+        "not_a_bearer_token"
+      );
+      expect(readClaimedIssuer(value)).toBeNull();
+    });
+
+    test("names the issuer of a token that would not verify", async () => {
+      const stranger = await generateTestKeypair("secp256k1");
+      const forged = await signServiceJwt({
+        keypair: stranger,
+        claims: claimsFor(alice, { aud: "did:web:other.test.invalid" }),
+      });
+      const foreign = await signed(
+        claimsFor(alice, { iss: "did:web:alice.test.invalid" })
+      );
+
+      expect(readClaimedIssuer(`Bearer ${forged}`)).toBe(alice.did);
+      expect(readClaimedIssuer(`Bearer ${foreign}`)).toBe(
+        "did:web:alice.test.invalid"
+      );
+      expect(plc.requests).toHaveLength(0);
+    });
+
+    test.each<{ name: string; token: () => Promise<string> }>([
+      {
+        name: "is not a DID",
+        token: () => signed(claimsFor(alice, { iss: "alice.test.invalid" })),
+      },
+      {
+        name: "holds a line break",
+        token: () => signed(claimsFor(alice, { iss: `${alice.did}\nforged` })),
+      },
+      {
+        name: "is longer than a DID may be",
+        token: () =>
+          signed(claimsFor(alice, { iss: `did:web:${"a".repeat(241)}` })),
+      },
+      {
+        name: "is not a string",
+        token: () => signed(claimsFor(alice, { iss: 7 })),
+      },
+      {
+        name: "is missing",
+        token: () => signed(claimsFor(alice, { iss: undefined })),
+      },
+      {
+        name: "sits in a payload that is not JSON",
+        token: async () => {
+          const [header, , signature] = (await signed(claimsFor(alice))).split(
+            "."
+          );
+          return `${header}.${Buffer.from("not json").toString(
+            "base64url"
+          )}.${signature}`;
+        },
+      },
+      {
+        name: "sits in a token of two segments",
+        token: async () =>
+          (await signed(claimsFor(alice))).split(".").slice(0, 2).join("."),
+      },
+    ])("names no issuer when the claim $name", async ({ token }) => {
+      expect(readClaimedIssuer(`Bearer ${await token()}`)).toBeNull();
+    });
+
+    test("a token is accepted for at most 310 seconds after it was first accepted", async () => {
+      const token = await signed(claimsFor(alice, { exp: NOW + 300 }));
+      const at = (nowSeconds: number) =>
+        verifyServiceJwt(token, { aud: AUD, lxm: LXM, nowSeconds });
+
+      expect(MAX_SECONDS_TOKEN_IS_ACCEPTED).toBe(310);
+      await expect(at(NOW)).resolves.toMatchObject({ did: alice.did });
+      await expect(
+        at(NOW + MAX_SECONDS_TOKEN_IS_ACCEPTED)
+      ).resolves.toMatchObject({ did: alice.did });
+      expect(
+        (await rejection(at(NOW + MAX_SECONDS_TOKEN_IS_ACCEPTED + 1))).code
+      ).toBe("polis_err_atproto_auth_expired");
     });
   });
 

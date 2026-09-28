@@ -3,6 +3,7 @@
  * This file is responsible for starting the server after the app is configured
  */
 import app from "./app";
+import { logAtprotoLoginMode } from "./src/auth/atproto-admin";
 import Config from "./src/config";
 import logger from "./src/utils/logger";
 
@@ -14,6 +15,7 @@ import logger from "./src/utils/logger";
 function startServer(port = Config.serverPort) {
   const server = app.listen(port);
   logger.info(`Server started on port ${port}`);
+  logAtprotoLoginMode();
   return server;
 }
 
