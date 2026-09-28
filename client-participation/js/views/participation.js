@@ -8,11 +8,11 @@ var ConversationInfoSlideView = require("../views/conversationInfoSlideView");
 var ConversationStatsHeader = require("../views/conversation-stats-header");
 var ConversationTabsView = require("../views/conversationTabs");
 var ConversationView = require("../views/conversation");
+var descriptionHtml = require("../util/descriptionHtml");
 var DivisiveCommentsView = require("../views/DivisiveCommentsView");
 var display = require("../util/display");
 var eb = require("../eventBus");
 var GroupSelectionView = require("../views/groupSelectionView");
-var { markdown } = require("markdown");
 var ParticipantModel = require("../models/participant");
 var blackskyLogoBase64 = require("../images/blacksky_logo");
 var preloadHelper = require("../util/preloadHelper");
@@ -114,7 +114,7 @@ module.exports = ConversationView.extend({
     // var md_content = "Hello.\n======\n* This is markdown.\n * It is fun\n * Love it or leave it.\n* This is [an example](http://example.com/ \"Title\") inline link.\n\n![Alt text](https://62e528761d0685343e1c-f3d1b99a743ffa4142d9d7f1978d9686.ssl.cf2.rackcdn.com/files/67396/width668/image-20141216-14144-1fmodw7.jpg)"
     var md_content = ctx.description || "";
 
-    var html = markdown.toHTML(md_content);
+    var html = descriptionHtml(md_content);
     ctx.description = html;
     if (/^ *$/.test(ctx.description) || _.isNull(ctx.description) || ctx.description === "") {
       ctx.description = void 0;
