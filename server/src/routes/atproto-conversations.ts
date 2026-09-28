@@ -25,8 +25,9 @@ export const ATPROTO_CONVERSATION_LIMITS = {
   statementCodeUnits: 997,
 };
 
-const CONVERSATION_COLLECTION = "community.blacksky.assembly.conversation";
-const STATEMENT_COLLECTION = "community.blacksky.assembly.statement";
+export const CONVERSATION_COLLECTION =
+  "community.blacksky.assembly.conversation";
+export const STATEMENT_COLLECTION = "community.blacksky.assembly.statement";
 const MAX_RAW_TEXT_LENGTH = 4000;
 const MAX_RAW_STATEMENTS = 100;
 const MAX_AT_URI_LENGTH = 1024;
@@ -230,26 +231,37 @@ function validateStatements(value: unknown): string[] {
   });
 }
 
-function validateRecordUri(value: unknown, did: string): string {
+export function parseAtprotoRecordUri(
+  value: unknown,
+  collection: string
+): { uri: string; did: string } | null {
   const match =
     typeof value === "string" && value.length <= MAX_AT_URI_LENGTH
       ? AT_URI_PATTERN.exec(value)
       : null;
   if (
     !match ||
-    match[2] !== CONVERSATION_COLLECTION ||
+    match[2] !== collection ||
     match[3] === "." ||
     match[3] === ".."
   ) {
+    return null;
+  }
+  return { uri: match[0], did: match[1] };
+}
+
+function validateRecordUri(value: unknown, did: string): string {
+  const record = parseAtprotoRecordUri(value, CONVERSATION_COLLECTION);
+  if (!record) {
     throw new AtprotoConversationError("polis_err_atproto_record_uri_invalid");
   }
-  if (match[1] !== did) {
+  if (record.did !== did) {
     throw new AtprotoConversationError(
       "polis_err_atproto_record_did_mismatch",
       403
     );
   }
-  return match[0];
+  return record.uri;
 }
 
 export function isAtprotoRecordCid(value: unknown): value is string {

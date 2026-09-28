@@ -109,6 +109,8 @@ function _createHybridJwtMiddleware(
             (req as any).p = (req as any).p || {};
             (req as any).p.uid = payload.uid;
           }
+          (req as any).p = (req as any).p || {};
+          (req as any).p.admin_did = payload.sub;
           return next();
         } catch (err) {
           logger.error("Atproto admin JWT validation failed", err);

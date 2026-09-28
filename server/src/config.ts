@@ -101,6 +101,12 @@ export default {
     };
   },
 
+  getAtprotoRecordSettings(): { enforceDidMatch: boolean } {
+    return {
+      enforceDidMatch: process.env.ATPROTO_RECORD_DID_MATCH === "enforce",
+    };
+  },
+
   getValidTopicalRatio(): number | null {
     const raw = process.env.TOPICAL_COMMENT_RATIO;
     if (raw === undefined || raw === null || raw === "") return null;

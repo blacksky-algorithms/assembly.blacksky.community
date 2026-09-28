@@ -503,7 +503,7 @@ helpersInitialized.then(
 
     app.post(
       "/api/v3/atproto/statement-record",
-      hybridAuthOptional(assignToP),
+      hybridAuth(assignToP),
       need("conversation_id", getConversationIdFetchZid, assignToPCustom("zid")),
       need("tid", getInt, assignToP),
       need("at_uri", getStringLimitLength(1, 500), assignToP),
