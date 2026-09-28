@@ -114,7 +114,6 @@ function _createHybridJwtMiddleware(
           return next();
         } catch (err) {
           logger.error("Atproto admin JWT validation failed", err);
-          if (isOptional) return next();
           return res.status(401).json({ error: "Invalid admin token" });
         }
       } else if (isXidJWT(token)) {
