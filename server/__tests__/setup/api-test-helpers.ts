@@ -209,6 +209,8 @@ async function createConversation(
     is_draft: false,
     strict_moderation: false,
     profanity_filter: false, // Disable profanity filter for testing
+    auth_needed_to_vote: false,
+    auth_needed_to_write: false,
     ...options,
   };
 
@@ -221,10 +223,11 @@ async function createConversation(
     errorPrefix: `Failed to create conversation`,
   });
 
+  let conversationId: string;
   try {
     // Try to parse the response text as JSON
     const jsonData = JSON.parse(response.text);
-    return jsonData.conversation_id;
+    conversationId = jsonData.conversation_id;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(
@@ -233,6 +236,18 @@ async function createConversation(
     }
     throw error;
   }
+
+  // The create route ignores these two options; only the update route accepts them.
+  const updateResponse = await updateConversation(agent, {
+    conversation_id: conversationId,
+    auth_needed_to_vote: defaultOptions.auth_needed_to_vote,
+    auth_needed_to_write: defaultOptions.auth_needed_to_write,
+  });
+  validateResponse(updateResponse, {
+    errorPrefix: `Failed to set conversation sign-in options`,
+  });
+
+  return conversationId;
 }
 
 /**
