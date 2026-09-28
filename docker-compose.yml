@@ -172,6 +172,7 @@ services:
       polis_tag: ${TAG:-dev}
     environment:
       - API_SERVER_PORT=${API_SERVER_PORT:-5000}
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
     depends_on:
       - "client-participation-alpha"
       - "server"
