@@ -136,13 +136,14 @@ async function _handleJWTConversationMismatch(
       req.p.pid = undefined;
       return true;
     } else {
-      // Case 4: Token for current conversation, but XID for different
+      // Case 4: Token for different conversation, XID unknown to current
       logger.debug(
-        "Case 4: XID participant with JWT for current conversation but XID for different - treating as anonymous"
+        "Case 4: XID participant with JWT for different conversation and XID unknown to current - treating as anonymous"
       );
       req.p.xid = undefined; // Clear XID
-      // Keep uid/pid from JWT
-      return false;
+      req.p.uid = undefined;
+      req.p.pid = undefined;
+      return true;
     }
   }
 
@@ -363,8 +364,6 @@ async function _ensureParticipantInternal(
     throw new Error("polis_err_missing_zid");
   }
 
-  let uid = req.p.uid;
-  let pid = req.p.pid;
   let isNewlyCreatedUser = false;
   let isNewlyCreatedParticipant = false;
   let needsNewJWT = false;
@@ -375,6 +374,10 @@ async function _ensureParticipantInternal(
   if (treatedAsNew) {
     needsNewJWT = true;
   }
+
+  // Read after the mismatch handling above: it clears these on req.p.
+  let uid = req.p.uid;
+  let pid = req.p.pid;
 
   // Check for legacy cookie before creating new user
   if (uid === undefined && !req.p.jwt_conversation_mismatch) {
