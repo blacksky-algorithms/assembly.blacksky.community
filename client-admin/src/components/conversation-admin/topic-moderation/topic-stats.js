@@ -4,6 +4,7 @@
 import React from 'react'
 import { connect } from 'react-redux'
 import { jsx, Box, Flex, Heading, Text, Card } from 'theme-ui'
+import PolisNet from '../../../util/net'
 
 const mapStateToProps = (state) => {
   return {
@@ -34,8 +35,7 @@ class TopicStats extends React.Component {
       console.log('TopicStats loadStats - conversation_id:', conversation_id)
 
       // Fetch moderation statistics
-      const response = await fetch(`/api/v3/topicMod/stats?conversation_id=${conversation_id}`)
-      const data = await response.json()
+      const data = await PolisNet.polisGet('/api/v3/topicMod/stats', { conversation_id })
 
       if (data.status === 'success') {
         this.setState({
