@@ -5,7 +5,7 @@ import ConversationHasCommentsCheck from './conversation-has-comments-check'
 import { mockAuth } from '../../test-utils'
 
 // Mock the useAuth hook directly for this test file
-jest.mock('react-oidc-context', () => ({
+jest.mock('../../util/auth-shim', () => ({
   useAuth: () => mockAuth
 }))
 

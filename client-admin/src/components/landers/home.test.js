@@ -4,19 +4,6 @@ import { ThemeUIProvider } from 'theme-ui'
 import theme from '../../theme'
 import Home from './home'
 
-// Mock child components for isolation
-jest.mock('./exploreKnowledgeBase', () => {
-  const MockComponent = () => <div data-testid="explore-kb-mock">ExploreKnowledgeBase</div>
-  MockComponent.displayName = 'MockExploreKnowledgeBase'
-  return MockComponent
-})
-
-jest.mock('./press', () => {
-  const MockComponent = () => <div data-testid="press-mock">Press</div>
-  MockComponent.displayName = 'MockPress'
-  return MockComponent
-})
-
 const AllTheProviders = ({ children }) => {
   return (
     <Router
@@ -35,7 +22,7 @@ describe('Home component', () => {
   it('renders the main heading', () => {
     customRender(<Home />)
     expect(
-      screen.getByRole('heading', { level: 1, name: /Input Crowd, Output Meaning/i })
+      screen.getByRole('heading', { level: 1, name: "Blacksky People's Assembly" })
     ).toBeInTheDocument()
   })
 
@@ -45,9 +32,11 @@ describe('Home component', () => {
     expect(within(getStartedSection).getByRole('link', { name: /Sign in/i })).toBeInTheDocument()
   })
 
-  it('renders the mocked child components', () => {
+  it('links to the source code', () => {
     customRender(<Home />)
-    expect(screen.getByTestId('explore-kb-mock')).toBeInTheDocument()
-    expect(screen.getByTestId('press-mock')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'on Github' })).toHaveAttribute(
+      'href',
+      'https://github.com/blacksky-algorithms/'
+    )
   })
 })

@@ -1,16 +1,14 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { BrowserRouter as Router } from 'react-router'
 import { ThemeUIProvider } from 'theme-ui'
 import theme from '../../theme'
 import SignIn from './signin'
-import { mockAuth } from '../../test-utils'
+import { getOAuthClient } from '../../util/atproto-oauth'
 
-// Mock the useAuth hook directly for this test file
-jest.mock('react-oidc-context', () => ({
-  useAuth: () => mockAuth
+jest.mock('../../util/atproto-oauth', () => ({
+  getOAuthClient: jest.fn()
 }))
 
-// Mock Navigate component
 const mockNavigate = jest.fn()
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -20,14 +18,9 @@ jest.mock('react-router', () => ({
   }
 }))
 
-// Wrapper to provide theme and router context
 const renderWithProviders = (component, options = {}) => {
   return render(
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}>
+    <Router>
       <ThemeUIProvider theme={theme}>{component}</ThemeUIProvider>
     </Router>,
     options
@@ -35,17 +28,20 @@ const renderWithProviders = (component, options = {}) => {
 }
 
 describe('SignIn', () => {
+  let signIn
+
   beforeEach(() => {
     jest.clearAllMocks()
-    mockAuth.isAuthenticated = false
-    mockAuth.isLoading = false
+    signIn = jest.fn(() => new Promise(() => {}))
+    getOAuthClient.mockReturnValue({ signIn })
   })
 
   it('renders sign in form when not authenticated', () => {
     renderWithProviders(<SignIn authed={false} />)
 
-    expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Sign In' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your atproto handle')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign In' })).toHaveAttribute('id', 'signinButton')
   })
 
   it('redirects to home when authenticated', () => {
@@ -54,37 +50,44 @@ describe('SignIn', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 
-  it('calls signinRedirect when sign in button is clicked', () => {
+  it('keeps the button disabled until a handle is entered', () => {
     renderWithProviders(<SignIn authed={false} />)
 
-    const signInButton = screen.getByRole('button', { name: 'Sign In' })
-    fireEvent.click(signInButton)
+    const button = screen.getByRole('button', { name: 'Sign In' })
+    expect(button).toBeDisabled()
 
-    expect(mockAuth.signinRedirect).toHaveBeenCalledWith({
-      state: { returnTo: '/' }
+    fireEvent.change(screen.getByPlaceholderText('Enter your atproto handle'), {
+      target: { value: '   ' }
     })
+    expect(button).toBeDisabled()
+
+    fireEvent.click(button)
+    expect(signIn).not.toHaveBeenCalled()
   })
 
-  it('has correct button id for testing', () => {
+  it('starts sign-in with the trimmed handle', () => {
     renderWithProviders(<SignIn authed={false} />)
 
-    const signInButton = screen.getByRole('button', { name: 'Sign In' })
-    expect(signInButton).toHaveAttribute('id', 'signinButton')
+    fireEvent.change(screen.getByPlaceholderText('Enter your atproto handle'), {
+      target: { value: '  alice.example.com ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+
+    expect(signIn).toHaveBeenCalledTimes(1)
+    expect(signIn).toHaveBeenCalledWith('alice.example.com')
+    expect(screen.getByRole('button', { name: 'Signing in...' })).toBeDisabled()
   })
 
-  it('uses static layout wrapper', () => {
-    const { container } = renderWithProviders(<SignIn authed={false} />)
-
-    // Check for header elements from static layout
-    const links = container.querySelectorAll('a')
-    const homeLink = Array.from(links).find((link) => link.textContent.includes('Polis'))
-    expect(homeLink).toBeInTheDocument()
-  })
-
-  it('renders h1 with correct font size', () => {
+  it('shows the error and allows another attempt when sign-in cannot start', async () => {
+    signIn.mockRejectedValue(new Error('Unable to resolve handle'))
     renderWithProviders(<SignIn authed={false} />)
 
-    const heading = screen.getByRole('heading', { level: 1, name: 'Sign In' })
-    expect(heading).toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText('Enter your atproto handle'), {
+      target: { value: 'alice.example.com' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+
+    expect(await screen.findByText('Unable to resolve handle')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sign In' })).toBeEnabled())
   })
 })

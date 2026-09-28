@@ -16,7 +16,7 @@ jest.mock('../../../actions', () => ({
 }))
 
 // Mock Auth
-jest.mock('react-oidc-context', () => ({
+jest.mock('../../../util/auth-shim', () => ({
   useAuth: () => mockAuth
 }))
 

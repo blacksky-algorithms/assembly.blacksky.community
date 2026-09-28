@@ -1,35 +1,39 @@
 import { render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
-import { BrowserRouter } from 'react-router'
+import { MemoryRouter } from 'react-router'
 import { ThemeUIProvider } from 'theme-ui'
 import App from './app'
-import rootReducer from './reducers'
 import theme from './theme'
-import { mockAuth } from './test-utils'
 
-// Mock the useAuth hook directly for this test file
-jest.mock('react-oidc-context', () => ({
-  useAuth: () => mockAuth
+jest.mock('./actions', () => ({
+  populateUserStore: jest.fn(() => ({ type: 'TEST_POPULATE_USER' }))
 }))
 
-// Mock the conversations component to avoid deep component tree issues
 jest.mock('./components/conversations-and-account/conversations', () => {
   return function MockConversations() {
     return <div>All Conversations</div>
   }
 })
 
-// Create store with Redux Toolkit (same as production)
-const store = configureStore({
-  reducer: rootReducer
-})
+const tokenExpiringAt = (secondsSinceEpoch) =>
+  ['e30', btoa(JSON.stringify({ exp: secondsSinceEpoch })), 'signature'].join('.')
 
-const renderWithProviders = (component) => {
+const NOW = new Date('2026-01-01T00:00:00.000Z')
+const NOW_SECONDS = NOW.getTime() / 1000
+
+const renderApp = () => {
+  const store = configureStore({
+    reducer: (state) => state,
+    preloadedState: { user: { user: null, loading: false, error: null } }
+  })
+
   return render(
     <ThemeUIProvider theme={theme}>
       <Provider store={store}>
-        <BrowserRouter>{component}</BrowserRouter>
+        <MemoryRouter initialEntries={['/']}>
+          <App />
+        </MemoryRouter>
       </Provider>
     </ThemeUIProvider>
   )
@@ -37,46 +41,44 @@ const renderWithProviders = (component) => {
 
 describe('App Authentication Flow', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    // Reset mock state
-    mockAuth.isAuthenticated = false
-    mockAuth.isLoading = true
-    mockAuth.error = null
+    jest.useFakeTimers({ now: NOW })
+    localStorage.clear()
   })
 
-  test('shows loading spinner when Auth is loading', () => {
-    mockAuth.isLoading = true
-    mockAuth.isAuthenticated = false
-
-    const { container } = renderWithProviders(<App />)
-
-    // Should show loading spinner container
-    const spinnerContainer = container.querySelector('div[style*="display: flex"]')
-    expect(spinnerContainer).toBeInTheDocument()
-    // And it should contain an SVG
-    const svg = spinnerContainer?.querySelector('svg')
-    expect(svg).toBeInTheDocument()
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
-  test('redirects to signin when not authenticated and not loading', () => {
-    mockAuth.isLoading = false
-    mockAuth.isAuthenticated = false
+  test('shows the sign in page when nobody is signed in', () => {
+    renderApp()
 
-    renderWithProviders(<App />)
-
-    // Should show the Sign In page heading
-    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument()
-    // And the Sign In button
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
+    expect(screen.queryByText('All Conversations')).not.toBeInTheDocument()
   })
 
-  test('shows protected content when authenticated and not loading', () => {
-    mockAuth.isLoading = false
-    mockAuth.isAuthenticated = true
+  test('shows protected content to a signed-in admin', () => {
+    localStorage.setItem(
+      'atproto_identity',
+      JSON.stringify({ did: 'did:plc:testadmin', handle: 'admin.example.com' })
+    )
+    localStorage.setItem('atproto_admin_token', tokenExpiringAt(NOW_SECONDS + 3600))
 
-    renderWithProviders(<App />)
+    renderApp()
 
-    // Should show the main app content (conversations page)
-    expect(screen.getByText(/All Conversations/i)).toBeInTheDocument()
+    expect(screen.getByText('All Conversations')).toBeInTheDocument()
+  })
+
+  test('signs the admin out when the admin session has expired', () => {
+    localStorage.setItem(
+      'atproto_identity',
+      JSON.stringify({ did: 'did:plc:testadmin', handle: 'admin.example.com' })
+    )
+    localStorage.setItem('atproto_admin_token', tokenExpiringAt(NOW_SECONDS - 1))
+
+    renderApp()
+
+    expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
+    expect(localStorage.getItem('atproto_identity')).toBeNull()
+    expect(localStorage.getItem('atproto_admin_token')).toBeNull()
   })
 })
