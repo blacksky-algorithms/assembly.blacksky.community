@@ -24,8 +24,15 @@
 # such as when using postgres on your host machine, or a remote server.
 # (by default, the Makefile will include --profile postgres, unless POSTGRES_DOCKER=false in your env)
 
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
 services:
   client-participation-alpha:
+    logging: *bounded-logs
     build:
       context: ./client-participation-alpha
       dockerfile: Dockerfile
@@ -47,6 +54,7 @@ services:
       - "server"
 
   server:
+    logging: *bounded-logs
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DATABASE_SSL=${DATABASE_SSL}
@@ -75,6 +83,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   math:
+    logging: *bounded-logs
     image: 050917022930.dkr.ecr.us-east-1.amazonaws.com/polis/math:latest
     build:
       context: ./math
@@ -95,6 +104,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   delphi:
+    logging: *bounded-logs
     image: 050917022930.dkr.ecr.us-east-1.amazonaws.com/polis/delphi:latest
     build:
       context: ./delphi
@@ -143,6 +153,7 @@ services:
     restart: unless-stopped
 
   postgres:
+    logging: *bounded-logs
     restart: always
     build:
       context: ./server
@@ -162,6 +173,7 @@ services:
       - postgres
 
   nginx-proxy:
+    logging: *bounded-logs
     image: docker.io/compdem/polis-nginx-proxy:${TAG:-dev}
     build:
       context: ./file-server
@@ -182,6 +194,7 @@ services:
     restart: unless-stopped
 
   file-server:
+    logging: *bounded-logs
     image: docker.io/compdem/polis-file-server:${TAG:-dev}
     build:
       context: ./
@@ -205,6 +218,7 @@ services:
     restart: unless-stopped
 
   dynamodb:
+    logging: *bounded-logs
     image: amazon/dynamodb-local:latest
     container_name: polis-dynamodb-local
     restart: unless-stopped
@@ -224,6 +238,7 @@ services:
 
   # Ollama for LLM processing
   ollama:
+    logging: *bounded-logs
     image: ollama/ollama:latest
     container_name: ollama
     volumes:
@@ -236,6 +251,7 @@ services:
 
   # MinIO S3-compatible storage
   minio:
+    logging: *bounded-logs
     image: minio/minio:latest
     restart: unless-stopped
     volumes:
