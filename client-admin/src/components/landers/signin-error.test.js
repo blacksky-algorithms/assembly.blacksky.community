@@ -59,4 +59,22 @@ describe('SignIn reason for a failed sign-in', () => {
     expect(mockSignIn).toHaveBeenCalledWith('organizer.example.com')
     expect(screen.queryByText(PROOF_MESSAGE)).toBeNull()
   })
+
+  it('reports once that the message was shown, so that it is not shown again later', () => {
+    const onSignInErrorShown = jest.fn()
+    const { rerender } = render(page({ signInError: PROOF_MESSAGE, onSignInErrorShown }))
+
+    rerender(page({ signInError: '', onSignInErrorShown }))
+
+    expect(onSignInErrorShown).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByText(PROOF_MESSAGE)).toHaveLength(1)
+  })
+
+  it('reports nothing when there is no message', () => {
+    const onSignInErrorShown = jest.fn()
+
+    render(page({ signInError: '', onSignInErrorShown }))
+
+    expect(onSignInErrorShown).toHaveBeenCalledTimes(0)
+  })
 })

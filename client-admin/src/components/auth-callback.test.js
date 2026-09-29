@@ -4,6 +4,9 @@ import { ThemeUIProvider } from 'theme-ui'
 import theme from '../theme'
 import AuthCallback from './auth-callback'
 
+jest.setTimeout(30000)
+const PATIENT = { timeout: 15000 }
+
 const mockInit = jest.fn()
 const mockGetProfile = jest.fn()
 const mockGetSession = jest.fn()
@@ -84,7 +87,7 @@ describe('AuthCallback', () => {
       }
     })
     mockGetSession.mockResolvedValue({ data: { email } })
-    mockGetServiceAuth.mockResolvedValue({ data: { token: 'proof-1' } })
+    mockGetServiceAuth.mockResolvedValue({ data: { token: 'proof.number1.signature' } })
   })
 
   afterEach(() => {
@@ -111,7 +114,10 @@ describe('AuthCallback', () => {
     expect(loginRequests()).toEqual([
       {
         url: 'http://localhost/api/v3/auth/atproto-login',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer proof-1' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer proof.number1.signature'
+        },
         body: { ...identity, email }
       }
     ])
@@ -134,6 +140,17 @@ describe('AuthCallback', () => {
     expect(onError.mock.calls).toEqual([[PROOF_MESSAGE]])
     expect(onComplete).toHaveBeenCalledTimes(0)
     expect(window.fetch).toHaveBeenCalledTimes(1)
+    expect(localStorage.length).toBe(0)
+  })
+
+  it('goes to the sign-in page when the server refuses and nobody listens for the reason', async () => {
+    window.fetch.mockResolvedValue(
+      serverAnswers(401, { error: 'polis_err_atproto_auth_invalid', status: 401 })
+    )
+
+    openCallback({})
+
+    expect(await screen.findAllByText('sign-in page', {}, PATIENT)).toHaveLength(1)
     expect(localStorage.length).toBe(0)
   })
 })

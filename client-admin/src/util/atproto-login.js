@@ -15,7 +15,7 @@ const LOOKUP_FAILED_STATUS = 503
 const PROOF_REJECTED_MESSAGE =
   'We could not confirm this account with its host. Sign in again. If this keeps happening, your host may not support this sign-in yet.'
 const UNSUPPORTED_DID_MESSAGE =
-  'Accounts with a did:web identifier cannot sign in to the admin console yet.'
+  'This kind of account identifier cannot sign in to the admin console yet.'
 const LOOKUP_FAILED_MESSAGE = 'We could not look up your account just now. Try again in a minute.'
 const SIGN_IN_FAILED_MESSAGE = 'Sign-in did not complete. Try again.'
 
@@ -26,12 +26,31 @@ export function signInErrorMessage(err) {
   return SIGN_IN_FAILED_MESSAGE
 }
 
+const PROOF_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+const PROOF_MAX_LENGTH = 4096
+export const PROOF_TIMEOUT_MS = 10000
+
+function isProof(value) {
+  return typeof value === 'string' && value.length <= PROOF_MAX_LENGTH && PROOF_PATTERN.test(value)
+}
+
+function within(milliseconds, pending) {
+  let timer
+  const expired = new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out')), milliseconds)
+  })
+  return Promise.race([pending, expired]).finally(() => clearTimeout(timer))
+}
+
 async function requestProof(getServiceAuth) {
   try {
-    const result = await getServiceAuth({ aud: ASSEMBLY_SERVICE_DID, lxm: CREATE_SESSION_METHOD })
+    const result = await within(
+      PROOF_TIMEOUT_MS,
+      getServiceAuth({ aud: ASSEMBLY_SERVICE_DID, lxm: CREATE_SESSION_METHOD })
+    )
     const proof = result?.data?.token
-    if (typeof proof === 'string' && proof !== '') return proof
-    console.warn('Sign-in proof unavailable: the account host returned none')
+    if (isProof(proof)) return proof
+    console.warn('Sign-in proof unavailable: the account host returned none that can be sent')
   } catch (err) {
     console.warn('Sign-in proof unavailable', {
       name: err?.name,

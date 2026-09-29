@@ -35,6 +35,7 @@ import {
   isAdminTokenExpired
 } from './util/atproto-oauth'
 import { ADMIN_TOKEN_KEY, loginWithProof, signInErrorMessage } from './util/atproto-login'
+import { reloadPage, replacePage } from './util/page-navigation'
 import { Agent } from '@atproto/api'
 
 const AUTH_LOADING_TIMEOUT = 3000
@@ -142,7 +143,7 @@ const App = () => {
         .then((success) => {
           if (success) {
             // Reload to cleanly initialize with the new identity and admin JWT
-            window.location.replace('/')
+            replacePage('/')
           } else {
             setIsLoading(false)
           }
@@ -163,7 +164,7 @@ const App = () => {
       } else if (identity && !adminToken) {
         loginWithStoredIdentity(identity)
           .then(() => {
-            window.location.reload()
+            reloadPage()
           })
           .catch((err) => {
             console.error('Sign-in with the stored identity failed:', err)
@@ -229,6 +230,10 @@ const App = () => {
     }
   }, [loadUserDataIfNeeded])
 
+  const clearSignInError = useCallback(() => {
+    setSignInError('')
+  }, [])
+
   // Re-check auth when returning from OAuth callback
   const handleAuthComplete = useCallback(() => {
     const identity = getAtprotoIdentity()
@@ -241,7 +246,16 @@ const App = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
-        <Route path="/signin" element={<SignIn authed={isAuthed()} signInError={signInError} />} />
+        <Route
+          path="/signin"
+          element={
+            <SignIn
+              authed={isAuthed()}
+              signInError={signInError}
+              onSignInErrorShown={clearSignInError}
+            />
+          }
+        />
         <Route path="/signout" element={<SignOut />} />
         <Route path="/tos" element={<TOS />} />
         <Route path="/privacy" element={<Privacy />} />

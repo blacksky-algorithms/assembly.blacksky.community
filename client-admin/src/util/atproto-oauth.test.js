@@ -1,4 +1,5 @@
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
+import published from '../../../client-participation-alpha/public/oauth-client-metadata.json'
 import {
   ASSEMBLY_SERVICE_DID,
   CREATE_SESSION_METHOD,
@@ -40,5 +41,11 @@ describe('admin console OAuth request', () => {
     expect(clientMetadata.scope).toBe(OAUTH_SCOPE)
     expect(clientMetadata.scope.split(' ')).toContain(CREATE_SESSION_SCOPE)
     expect(new URL(clientMetadata.client_id).searchParams.get('scope')).toBe(OAUTH_SCOPE)
+  })
+
+  it('requests only scopes that the published client document declares', () => {
+    const declared = published.scope.split(' ')
+
+    expect(OAUTH_SCOPE.split(' ').filter((scope) => !declared.includes(scope))).toEqual([])
   })
 })
