@@ -7,14 +7,16 @@ import { Heading, Box, Button, Input, Text } from 'theme-ui'
 import StaticLayout from './lander-layout'
 import { getOAuthClient } from '../../util/atproto-oauth'
 
-const SignIn = ({ authed, signInError }) => {
+const SignIn = ({ authed, signInError, onSignInErrorShown }) => {
   const [handle, setHandle] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (signInError) setError(signInError)
-  }, [signInError])
+    if (!signInError) return
+    setError(signInError)
+    if (onSignInErrorShown) onSignInErrorShown()
+  }, [signInError, onSignInErrorShown])
 
   const handleSignIn = async () => {
     const trimmed = handle.trim()
@@ -73,7 +75,8 @@ const SignIn = ({ authed, signInError }) => {
 
 SignIn.propTypes = {
   authed: PropTypes.bool,
-  signInError: PropTypes.string
+  signInError: PropTypes.string,
+  onSignInErrorShown: PropTypes.func
 }
 
 export default SignIn
