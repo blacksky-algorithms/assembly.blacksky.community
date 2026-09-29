@@ -95,6 +95,50 @@ function hasWhitelistMatches(host: string): boolean {
   });
 }
 
+const FIRST_PARTY_DOMAIN = "blacksky.community";
+const LOOPBACK_HOSTNAMES = ["localhost", "127.0.0.1"];
+
+function configuredHosts(): string[] {
+  return [
+    Config.getServerHostname(),
+    Config.domainOverride,
+    ...Config.whitelistItems,
+  ]
+    .filter((host): host is string => !!host)
+    .map((host) => host.toLowerCase());
+}
+
+function isHostOrSubdomain(host: string, pattern: string): boolean {
+  return host === pattern || host.endsWith("." + pattern);
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  // A serialized origin has no path, credentials or upper case; anything
+  // else is not a value a browser sends in the Origin header.
+  if (url.origin !== origin) {
+    return false;
+  }
+  const isLoopback = LOOPBACK_HOSTNAMES.includes(url.hostname);
+  if (isLoopback && Config.isDevMode) {
+    return true;
+  }
+  if (url.protocol !== "https:" && !isLoopback && !Config.isDevMode) {
+    return false;
+  }
+  if (isHostOrSubdomain(url.hostname, FIRST_PARTY_DOMAIN)) {
+    return true;
+  }
+  return configuredHosts().some((pattern) =>
+    isHostOrSubdomain(url.host, pattern)
+  );
+}
+
 const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"];
 
 function withoutCredentials(
@@ -152,6 +196,14 @@ function addCorsHeader(
       });
       return next("unauthorized domain: " + origin);
     }
+  }
+
+  if (requestOrigin && !isTestingMode && !isAllowedOrigin(requestOrigin)) {
+    logger.warn("CORS: origin outside the allowlist", {
+      origin: requestOrigin,
+      path: req.path,
+      method: req.method,
+    });
   }
 
   // Set CORS headers
@@ -480,6 +532,7 @@ function makeRedirectorTo(path: string) {
 
 export {
   addCorsHeader,
+  isAllowedOrigin,
   denyIfNotFromWhitelistedDomain,
   handle_GET_domainWhitelist,
   handle_POST_domainWhitelist,
