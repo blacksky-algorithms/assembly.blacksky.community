@@ -527,6 +527,86 @@ async function publishSeed(zid: number, tid: number): Promise<boolean> {
   return true;
 }
 
+type StatementRecordRef = { at_uri: string; at_cid: string };
+
+function isServiceAccountUri(atUri: unknown, publisherDid: string): boolean {
+  return (
+    typeof atUri === "string" &&
+    atUri.startsWith(`at://${publisherDid}/${STATEMENT_COLLECTION}/`)
+  );
+}
+
+// A statement without a record cannot be voted on from the app when the
+// conversation needs sign-in, so the service account publishes one for it.
+export async function ensureStatementRecord(
+  zid: number,
+  tid: number
+): Promise<StatementRecordRef | null> {
+  const rows = await poolQuery(
+    `SELECT c.at_uri, c.at_cid, v.at_uri AS conversation_uri, v.at_cid AS conversation_cid
+       FROM comments c JOIN conversations v ON v.zid = c.zid
+      WHERE c.zid = $1 AND c.tid = $2;`,
+    [zid, tid]
+  );
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+  if (row.at_uri && row.at_cid) {
+    return { at_uri: row.at_uri, at_cid: row.at_cid };
+  }
+  if (!row.conversation_uri || !row.conversation_cid) {
+    return null;
+  }
+  const publisherDid = (await ensureAnonSession()) ? getAnonDid() : null;
+  if (!publisherDid) {
+    return null;
+  }
+  if (row.at_uri && !isServiceAccountUri(row.at_uri, publisherDid)) {
+    return null;
+  }
+  if (!row.at_uri) {
+    await poolQuery(
+      "UPDATE comments SET at_uri = $1 WHERE zid = $2 AND tid = $3 AND at_uri IS NULL;",
+      [`at://${publisherDid}/${STATEMENT_COLLECTION}/${nextTid()}`, zid, tid]
+    );
+  }
+  if (!(await publishSeed(zid, tid))) {
+    return null;
+  }
+  const after = await poolQuery(
+    "SELECT at_uri, at_cid FROM comments WHERE zid = $1 AND tid = $2;",
+    [zid, tid]
+  );
+  return after[0]?.at_uri && after[0]?.at_cid
+    ? { at_uri: after[0].at_uri, at_cid: after[0].at_cid }
+    : null;
+}
+
+export async function withStatementRecord<
+  T extends { tid?: unknown; at_uri?: unknown; at_cid?: unknown }
+>(
+  zid: number,
+  authNeededToVote: unknown,
+  statement: T | null
+): Promise<T | null> {
+  if (
+    !statement ||
+    !authNeededToVote ||
+    typeof statement.tid !== "number" ||
+    (statement.at_uri && statement.at_cid)
+  ) {
+    return statement;
+  }
+  try {
+    const ref = await ensureStatementRecord(zid, statement.tid);
+    return ref ? { ...statement, ...ref } : statement;
+  } catch (err) {
+    logger.error("atproto statement record for a voter failed", err);
+    return statement;
+  }
+}
+
 async function publishPendingSeeds(zid: number): Promise<boolean> {
   const pendingSql =
     "SELECT tid FROM comments WHERE zid = $1 AND is_seed = true AND at_uri IS NOT NULL AND at_cid IS NULL ORDER BY tid;";

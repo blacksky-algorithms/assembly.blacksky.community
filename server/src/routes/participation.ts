@@ -3,6 +3,7 @@ import { addExtendedParticipantInfo, joinConversation } from "../participant";
 import { failJson } from "../utils/fail";
 import { getConversationInfo, getXidRecord } from "../conversation";
 import { getNextComment } from "../nextComment";
+import { withStatementRecord } from "./atproto-conversations";
 import { getPca } from "../utils/pca";
 import { getPid, getUser } from "../user";
 import { getVotesForSingleParticipant } from "./votes";
@@ -418,7 +419,11 @@ async function handle_GET_participationInit(
     ]);
 
     response.votes = votes || [];
-    response.nextComment = nextComment;
+    response.nextComment = await withStatementRecord(
+      req.p.zid,
+      (conv as { auth_needed_to_vote?: unknown } | null)?.auth_needed_to_vote,
+      nextComment
+    );
     response.famous = famous || {};
 
     // Include JWT from middleware if one was issued

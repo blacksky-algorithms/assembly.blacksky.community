@@ -13,6 +13,7 @@ import {
   getZidFromConversationId,
 } from "../conversation";
 import { getNextComment } from "../nextComment";
+import { withStatementRecord } from "./atproto-conversations";
 import { createAnonUser } from "../auth/create-user";
 import { getPidPromise } from "../user";
 import { verifyXidJWT } from "../auth/xid-jwt";
@@ -93,7 +94,11 @@ export async function handle_GET_embed_conversation(
 
   try {
     const conv = await getConversationInfo(zid);
-    const nextComment = await getNextComment(zid, -1, [], undefined);
+    const nextComment = await withStatementRecord(
+      zid,
+      conv.auth_needed_to_vote,
+      await getNextComment(zid, -1, [], undefined)
+    );
     const reportId = await findReportId(zid);
 
     res.status(200).json({
@@ -272,7 +277,11 @@ export async function handle_POST_embed_vote(
     );
 
     // Get next comment for the voter
-    const nextComment = await getNextComment(zid, pid, [], undefined);
+    const nextComment = await withStatementRecord(
+      zid,
+      conv.auth_needed_to_vote,
+      await getNextComment(zid, pid, [], undefined)
+    );
 
     logger.info("Embed vote recorded", { did: did || "anonymous", zid, tid, vote, vote_at_uri: vote_at_uri || "none" });
 
