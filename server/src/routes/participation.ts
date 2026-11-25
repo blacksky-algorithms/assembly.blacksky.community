@@ -419,11 +419,7 @@ async function handle_GET_participationInit(
     ]);
 
     response.votes = votes || [];
-    response.nextComment = await withStatementRecord(
-      req.p.zid,
-      (conv as { auth_needed_to_vote?: unknown } | null)?.auth_needed_to_vote,
-      nextComment
-    );
+    response.nextComment = await withStatementRecord(req.p.zid, nextComment);
     response.famous = famous || {};
 
     // Include JWT from middleware if one was issued

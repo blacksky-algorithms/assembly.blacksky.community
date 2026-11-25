@@ -536,8 +536,8 @@ function isServiceAccountUri(atUri: unknown, publisherDid: string): boolean {
   );
 }
 
-// A statement without a record cannot be voted on from the app when the
-// conversation needs sign-in, so the service account publishes one for it.
+// The app can only tie a vote to its voter through a vote record, which needs a
+// statement record to point at, so the service account publishes one for it.
 export async function ensureStatementRecord(
   zid: number,
   tid: number
@@ -587,12 +587,10 @@ export async function withStatementRecord<
   T extends { tid?: unknown; at_uri?: unknown; at_cid?: unknown }
 >(
   zid: number,
-  authNeededToVote: unknown,
   statement: T | null
 ): Promise<T | null> {
   if (
     !statement ||
-    !authNeededToVote ||
     typeof statement.tid !== "number" ||
     (statement.at_uri && statement.at_cid)
   ) {

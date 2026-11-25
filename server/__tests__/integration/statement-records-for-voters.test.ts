@@ -309,7 +309,7 @@ describe("statement records in a conversation open to votes without sign-in", ()
     await pool.query("DELETE FROM comments WHERE zid = $1", [zid]);
   });
 
-  test("publishes nothing, because the app votes there without a record", async () => {
+  test("publishes a record so an app vote can name its voter", async () => {
     const tid = await addStatement(zid, `Open statement ${runId}`);
     const publicAgent = await newAgent();
 
@@ -319,11 +319,14 @@ describe("statement records in a conversation open to votes without sign-in", ()
 
     expect(response.status).toBe(200);
     expect(response.body.nextComment.tid).toBe(tid);
-    expect(response.body.nextComment.at_uri ?? null).toBeNull();
+    expect(response.body.nextComment.at_uri).toMatch(
+      new RegExp(`^at://${SERVICE_DID}/${STATEMENT_COLLECTION}/`)
+    );
+    expect(response.body.nextComment.at_cid).toBe("bafyopen");
     expect(await statementRow(zid, tid)).toEqual({
-      at_uri: null,
-      at_cid: null,
+      at_uri: response.body.nextComment.at_uri,
+      at_cid: "bafyopen",
     });
-    expect(mockedPut).toHaveBeenCalledTimes(0);
+    expect(mockedPut).toHaveBeenCalledTimes(1);
   });
 });

@@ -96,7 +96,6 @@ export async function handle_GET_embed_conversation(
     const conv = await getConversationInfo(zid);
     const nextComment = await withStatementRecord(
       zid,
-      conv.auth_needed_to_vote,
       await getNextComment(zid, -1, [], undefined)
     );
     const reportId = await findReportId(zid);
@@ -279,7 +278,6 @@ export async function handle_POST_embed_vote(
     // Get next comment for the voter
     const nextComment = await withStatementRecord(
       zid,
-      conv.auth_needed_to_vote,
       await getNextComment(zid, pid, [], undefined)
     );
 
