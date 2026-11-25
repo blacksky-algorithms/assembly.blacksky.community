@@ -2,6 +2,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   jest,
@@ -9,6 +10,11 @@ import {
 } from "@jest/globals";
 import type { Express } from "express";
 import request from "supertest";
+import {
+  ensureAnonSession,
+  getAnonDid,
+  putAnonStatementRecord,
+} from "../../src/auth/anon-pds";
 import { issueXidJWT } from "../../src/auth/xid-jwt";
 import pg from "../../src/db/pg-query";
 import { nextTid } from "../../src/utils/tid";
@@ -22,7 +28,15 @@ import {
 } from "../setup/atproto-test-helpers";
 import { pool } from "../setup/db-test-helpers";
 
+jest.mock("../../src/auth/anon-pds", () => ({
+  getAnonDid: jest.fn(),
+  ensureAnonSession: jest.fn(),
+  putAnonStatementRecord: jest.fn(),
+  createAnonStatementRecord: jest.fn(),
+}));
+
 const runId = `${process.pid}${Date.now()}`;
+const SERVICE_DID = "did:plc:serviceembedvote0000000000";
 const VOTE_COLLECTION = "community.blacksky.assembly.vote";
 const STATEMENT_COLLECTION = "community.blacksky.assembly.statement";
 const GET_RECORD = "https://pds.test.invalid/xrpc/com.atproto.repo.getRecord?";
@@ -531,3 +545,82 @@ describe("POST /api/v3/embed/vote for an account that has no participant yet", (
     ]);
   });
 });
+
+describe.each([true, false])(
+  "a signed-in account voting from the app when sign-in is required: %s",
+  (authNeededToVote) => {
+    beforeEach(() => {
+      (getAnonDid as jest.Mock).mockReturnValue(SERVICE_DID);
+      (ensureAnonSession as jest.Mock<() => Promise<boolean>>).mockResolvedValue(
+        true
+      );
+      (
+        putAnonStatementRecord as unknown as jest.Mock<
+          (params: { rkey: string }) => Promise<{ uri: string; cid: string }>
+        >
+      ).mockImplementation(async ({ rkey }) => ({
+        uri: `at://${SERVICE_DID}/${STATEMENT_COLLECTION}/${rkey}`,
+        cid: `bafyservice${rkey}`,
+      }));
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("is shown each statement once and votes as one participant", async () => {
+      const conversation = await createConversation(
+        authNeededToVote ? "sa" : "sb",
+        { authNeededToVote }
+      );
+      await pool.query(
+        "UPDATE conversations SET at_uri = $1, at_cid = $2 WHERE zid = $3",
+        [
+          `at://${randomDidPlc()}/community.blacksky.assembly.conversation/${nextTid()}`,
+          `bafyconversation${conversation.zid}`,
+          conversation.zid,
+        ]
+      );
+      const ownerPid = await addParticipant(
+        conversation.zid,
+        conversation.owner
+      );
+      const tids = [
+        await addStatement(conversation, ownerPid, "s 1"),
+        await addStatement(conversation, ownerPid, "s 2"),
+        await addStatement(conversation, ownerPid, "s 3"),
+      ];
+      const did = await registerAccount();
+
+      let served = (
+        await request(app).get(
+          `/api/v3/embed/conversation?conversation_id=${conversation.conversationId}`
+        )
+      ).body.nextComment;
+      const shown: number[] = [];
+      const pids = new Set<number>();
+      for (let i = 0; served && i <= tids.length; i++) {
+        shown.push(served.tid);
+        expect(served.at_uri).toBeTruthy();
+        const statement = {
+          tid: served.tid,
+          uri: served.at_uri,
+          cid: served.at_cid,
+        };
+        const response = await postRecordVote(
+          conversation,
+          statement,
+          1,
+          publishVoteRecord(did, statement, 1)
+        );
+        expect(response.status).toBe(200);
+        pids.add(response.body.currentPid);
+        served = response.body.nextComment;
+      }
+
+      expect(served).toBeNull();
+      expect([...shown].sort((a, b) => a - b)).toEqual(tids);
+      expect(pids.size).toBe(1);
+    });
+  }
+);
